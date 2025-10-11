@@ -8,16 +8,18 @@ body {
     font-family: 'Arial', sans-serif;
     overflow: hidden;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100vh;
 }
 
-/* Game canvas container */
-#gameContainer {
+/* Game canvas */
+#gameCanvas {
     width: 100vw;
     height: 100vh;
     position: fixed;
     top: 0;
     left: 0;
     z-index: 1;
+    background: linear-gradient(180deg, #87ceeb 0%, #f4a460 100%);
 }
 
 /* Counter display at the top */
@@ -70,6 +72,11 @@ body {
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
 
+/* Hide button when game starts */
+#spawnButton.hidden {
+    display: none;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     #counter {
@@ -82,4 +89,3 @@ body {
         padding: 15px 30px;
     }
 }
-
