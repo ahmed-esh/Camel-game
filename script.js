@@ -126,7 +126,7 @@ function loadCamelModel() {
     const loader = new THREE.GLTFLoader();
     
     loader.load(
-        'assets/Bactrian camel.gltf',
+        'assets/Bactrian camel.glb',
         function(gltf) {
             // Model loaded successfully
             camelModel = gltf.scene;
