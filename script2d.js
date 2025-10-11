@@ -11,6 +11,7 @@ let camelImage;
 let gravity = 0.5;
 let groundY;
 let isGameStarted = false;
+let backgroundMusic, camelSound;
 
 // Initialize the game
 function init() {
@@ -27,6 +28,9 @@ function init() {
     
     // Load camel image
     loadCamelImage();
+    
+    // Setup audio
+    setupAudio();
     
     // Add event listeners
     document.getElementById('spawnButton').addEventListener('click', startGame);
@@ -52,12 +56,37 @@ function loadCamelImage() {
 }
 
 /**
+ * Setup audio elements
+ */
+function setupAudio() {
+    backgroundMusic = document.getElementById('backgroundMusic');
+    camelSound = document.getElementById('camelSound');
+    
+    // Start background music
+    backgroundMusic.volume = 0.3; // Lower volume for background music
+    backgroundMusic.play().catch(e => {
+        console.log('Background music autoplay blocked:', e);
+        // Music will start when user interacts with the page
+    });
+    
+    // Set camel sound volume
+    camelSound.volume = 0.7;
+}
+
+/**
  * Start the game and spawn first camel
  */
 function startGame() {
     if (!isGameStarted) {
         isGameStarted = true;
+        // Start background music on first interaction
+        backgroundMusic.play().catch(e => console.log('Music play error:', e));
     }
+    
+    // Play camel sound
+    camelSound.currentTime = 0; // Reset to beginning
+    camelSound.play().catch(e => console.log('Camel sound error:', e));
+    
     spawnCamel();
 }
 
