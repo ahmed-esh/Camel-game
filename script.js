@@ -24,7 +24,7 @@ function init() {
         0.1, // Near clipping plane
         1000 // Far clipping plane
     );
-    camera.position.set(0, 5, 15);
+    camera.position.set(0, 5, 60);
     camera.lookAt(0, 0, 0);
     
     // Set up renderer
