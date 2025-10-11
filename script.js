@@ -171,8 +171,8 @@ function spawnCamel() {
     // Clone the camel model
     const camelClone = camelModel.clone();
     
-    // Make camels 80% smaller (scale to 0.2)
-    camelClone.scale.set(0.2, 0.2, 0.2);
+    // Make camels much smaller (scale to 0.05 = 5% of original size)
+    camelClone.scale.set(0.05, 0.05, 0.05);
     
     // Calculate bounding box for physics (after scaling)
     const box = new THREE.Box3().setFromObject(camelClone);
