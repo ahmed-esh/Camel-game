@@ -24,7 +24,7 @@ function init() {
         0.1, // Near clipping plane
         1000 // Far clipping plane
     );
-    camera.position.set(0, 5, 15);
+    camera.position.set(0, 5, 50);
     camera.lookAt(0, 0, 0);
     
     // Set up renderer
@@ -132,7 +132,7 @@ function loadCamelModel() {
             camelModel = gltf.scene;
             
             // Scale the original model to be much smaller
-            camelModel.scale.set(0.01, 0.01, 0.01);
+            camelModel.scale.set(0.001, 0.001, 0.001);
             
             // Enable shadows for all meshes in the model
             camelModel.traverse(function(node) {
