@@ -24,7 +24,7 @@ function init() {
         0.1, // Near clipping plane
         1000 // Far clipping plane
     );
-    camera.position.set(0, 5, 500);
+    camera.position.set(0, 5, 15);
     camera.lookAt(0, 0, 0);
     
     // Set up renderer
@@ -126,13 +126,13 @@ function loadCamelModel() {
     const loader = new THREE.GLTFLoader();
     
     loader.load(
-        'assets/Bactrian camel.glb',
+        'assets/camel.glb',
         function(gltf) {
             // Model loaded successfully
             camelModel = gltf.scene;
             
             // Scale the original model to be much smaller
-            camelModel.scale.set(0.00005, 0.00005, 0.00005);
+            camelModel.scale.set(0.1, 0.1, 0.1);
             
             // Enable shadows for all meshes in the model
             camelModel.traverse(function(node) {
