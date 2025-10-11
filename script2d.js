@@ -57,7 +57,6 @@ function loadCamelImage() {
 function startGame() {
     if (!isGameStarted) {
         isGameStarted = true;
-        document.getElementById('spawnButton').classList.add('hidden');
     }
     spawnCamel();
 }
