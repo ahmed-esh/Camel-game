@@ -131,6 +131,9 @@ function loadCamelModel() {
             // Model loaded successfully
             camelModel = gltf.scene;
             
+            // Scale the original model to be much smaller
+            camelModel.scale.set(0.005, 0.005, 0.005);
+            
             // Enable shadows for all meshes in the model
             camelModel.traverse(function(node) {
                 if (node.isMesh) {
@@ -171,10 +174,7 @@ function spawnCamel() {
     // Clone the camel model
     const camelClone = camelModel.clone();
     
-    // Make camels extremely small (scale to 0.01 = 1% of original size)
-    camelClone.scale.set(0.001, 0.001, 0.001);
-    
-    // Calculate bounding box for physics (after scaling)
+    // Calculate bounding box for physics
     const box = new THREE.Box3().setFromObject(camelClone);
     const size = box.getSize(new THREE.Vector3());
     
