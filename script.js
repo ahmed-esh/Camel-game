@@ -95,8 +95,8 @@ function setupPhysics() {
  * Create the ground plane with physics
  */
 function createGround() {
-    // Visual ground (Three.js)
-    const groundGeometry = new THREE.PlaneGeometry(50, 50);
+    // Visual ground (Three.js) - Make it much larger
+    const groundGeometry = new THREE.PlaneGeometry(200, 200);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
         color: 0x8b7355,
         roughness: 0.8,
@@ -108,7 +108,7 @@ function createGround() {
     groundMesh.receiveShadow = true;
     scene.add(groundMesh);
     
-    // Physics ground (Cannon.js)
+    // Physics ground (Cannon.js) - Make it much larger
     const groundShape = new CANNON.Plane();
     const groundBody = new CANNON.Body({ 
         mass: 0, // Static body
@@ -179,9 +179,9 @@ function spawnCamel() {
     const size = box.getSize(new THREE.Vector3());
     
     // Position the camel at spawn point (above the screen)
-    const spawnX = (Math.random() - 0.5) * 2; // Small random X offset
-    const spawnY = 15; // High up
-    const spawnZ = (Math.random() - 0.5) * 2; // Small random Z offset
+    const spawnX = (Math.random() - 0.5) * 10; // Larger random X offset
+    const spawnY = 30; // Higher up for the larger world
+    const spawnZ = (Math.random() - 0.5) * 10; // Larger random Z offset
     
     camelClone.position.set(spawnX, spawnY, spawnZ);
     
