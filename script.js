@@ -132,7 +132,7 @@ function loadCamelModel() {
             camelModel = gltf.scene;
             
             // Scale the original model to be much smaller
-            camelModel.scale.set(0.005, 0.005, 0.005);
+            camelModel.scale.set(0.00005, 0.00005, 0.00005);
             
             // Enable shadows for all meshes in the model
             camelModel.traverse(function(node) {
