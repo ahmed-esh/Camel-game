@@ -104,13 +104,13 @@ function spawnCamel() {
     counter++;
     document.getElementById('counter').textContent = counter;
     
-    // Create new camel object
+    // Create new camel object with randomized spawn position
     const camel = {
-        x: Math.random() * (canvas.width - 100) + 50, // Random X position
-        y: 50, // Start near top
+        x: Math.random() * (canvas.width - 80), // Random X position across entire width
+        y: 20 + Math.random() * 30, // Random Y position between 20-50 pixels from top
         width: 80, // Camel width
         height: 100, // Camel height
-        velocityX: (Math.random() - 0.5) * 2, // Small random horizontal velocity
+        velocityX: (Math.random() - 0.5) * 3, // Random horizontal velocity (-1.5 to 1.5)
         velocityY: 0, // Start with no vertical velocity
         rotation: (Math.random() - 0.5) * 0.5, // Small random rotation
         rotationSpeed: (Math.random() - 0.5) * 0.1, // Random rotation speed
