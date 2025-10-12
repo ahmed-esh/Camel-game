@@ -171,7 +171,7 @@ function handleCollision(camel1, camel2) {
     const restitution = 0.6;
     
     // Calculate impulse scalar
-    const impulseScalar = -(1 + restitution) * velocityAlongNormal;
+    let impulseScalar = -(1 + restitution) * velocityAlongNormal;
     impulseScalar /= 2; // Since both camels have equal mass
     
     // Apply impulse
