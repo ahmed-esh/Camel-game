@@ -113,7 +113,7 @@ function spawnCamel() {
         velocityX: (Math.random() - 0.5) * 2, // Small random horizontal velocity
         velocityY: 0, // Start with no vertical velocity
         rotation: (Math.random() - 0.5) * 0.5, // Small random rotation
-        rotationSpeed: (Math.random() - 0.5) * 0.1, // Random rotation speed
+        rotationSpeed: (Math.random() - 0.5) * 0.02, // Very small random rotation speed
         scale: 0.8 + Math.random() * 0.4, // Random scale between 0.8 and 1.2
         color: `hsl(${Math.random() * 60 + 30}, 70%, 60%)`, // Random camel-like color
         // Random anchor point (pivot point) for rotation
@@ -186,9 +186,9 @@ function handleCollision(camel1, camel2) {
     camel2.velocityX += impulseX;
     camel2.velocityY += impulseY;
     
-    // Add some random rotation when colliding
-    camel1.rotationSpeed += (Math.random() - 0.5) * 0.2;
-    camel2.rotationSpeed += (Math.random() - 0.5) * 0.2;
+    // Add minimal random rotation when colliding
+    camel1.rotationSpeed += (Math.random() - 0.5) * 0.05;
+    camel2.rotationSpeed += (Math.random() - 0.5) * 0.05;
 }
 
 /**
@@ -203,8 +203,9 @@ function updateCamels() {
         camel.x += camel.velocityX;
         camel.y += camel.velocityY;
         
-        // Update rotation
+        // Update rotation with damping
         camel.rotation += camel.rotationSpeed;
+        camel.rotationSpeed *= 0.95; // Slow down rotation over time
         
         // Apply air resistance
         camel.velocityX *= 0.99;
@@ -227,6 +228,11 @@ function updateCamels() {
         // Stop very slow movements
         if (Math.abs(camel.velocityY) < 0.1 && camel.y >= groundY - camel.height - 5) {
             camel.velocityY = 0;
+            camel.rotationSpeed *= 0.8; // Gradually stop rotation when landed
+        }
+        
+        // Stop very slow rotation
+        if (Math.abs(camel.rotationSpeed) < 0.001) {
             camel.rotationSpeed = 0;
         }
         
