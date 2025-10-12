@@ -104,18 +104,21 @@ function spawnCamel() {
     counter++;
     document.getElementById('counter').textContent = counter;
     
-    // Create new camel object with randomized spawn position
+    // Create new camel object
     const camel = {
-        x: Math.random() * (canvas.width - 80), // Random X position across entire width
-        y: 20 + Math.random() * 30, // Random Y position between 20-50 pixels from top
+        x: Math.random() * (canvas.width - 100) + 50, // Random X position
+        y: 50, // Start near top
         width: 80, // Camel width
         height: 100, // Camel height
-        velocityX: (Math.random() - 0.5) * 3, // Random horizontal velocity (-1.5 to 1.5)
+        velocityX: (Math.random() - 0.5) * 2, // Small random horizontal velocity
         velocityY: 0, // Start with no vertical velocity
         rotation: (Math.random() - 0.5) * 0.5, // Small random rotation
         rotationSpeed: (Math.random() - 0.5) * 0.1, // Random rotation speed
         scale: 0.8 + Math.random() * 0.4, // Random scale between 0.8 and 1.2
-        color: `hsl(${Math.random() * 60 + 30}, 70%, 60%)` // Random camel-like color
+        color: `hsl(${Math.random() * 60 + 30}, 70%, 60%)`, // Random camel-like color
+        // Random anchor point (pivot point) for rotation
+        anchorX: Math.random() * 80, // Random X anchor (0 to 80)
+        anchorY: Math.random() * 100 // Random Y anchor (0 to 100)
     };
     
     camels.push(camel);
@@ -250,34 +253,34 @@ function renderCamels() {
     camels.forEach(camel => {
         ctx.save();
         
-        // Move to camel center
-        ctx.translate(camel.x + camel.width / 2, camel.y + camel.height / 2);
+        // Move to camel's anchor point (pivot point)
+        ctx.translate(camel.x + camel.anchorX, camel.y + camel.anchorY);
         
-        // Apply rotation
+        // Apply rotation around the anchor point
         ctx.rotate(camel.rotation);
         
         // Apply scale
         ctx.scale(camel.scale, camel.scale);
         
-        // Draw camel image
+        // Draw camel image (offset by anchor point)
         if (camelImage.complete) {
             ctx.drawImage(
                 camelImage,
-                -camel.width / 2,
-                -camel.height / 2,
+                -camel.anchorX,
+                -camel.anchorY,
                 camel.width,
                 camel.height
             );
         } else {
             // Fallback: draw colored rectangle if image not loaded
             ctx.fillStyle = camel.color;
-            ctx.fillRect(-camel.width / 2, -camel.height / 2, camel.width, camel.height);
+            ctx.fillRect(-camel.anchorX, -camel.anchorY, camel.width, camel.height);
             
             // Draw simple camel shape
             ctx.fillStyle = '#8B4513';
-            ctx.fillRect(-20, -30, 40, 20); // Body
-            ctx.fillRect(-15, -40, 15, 15); // Head
-            ctx.fillRect(-10, -45, 8, 8); // Hump
+            ctx.fillRect(-camel.anchorX - 20, -camel.anchorY - 30, 40, 20); // Body
+            ctx.fillRect(-camel.anchorX - 15, -camel.anchorY - 40, 15, 15); // Head
+            ctx.fillRect(-camel.anchorX - 10, -camel.anchorY - 45, 8, 8); // Hump
         }
         
         ctx.restore();
