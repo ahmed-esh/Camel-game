@@ -122,6 +122,73 @@ function spawnCamel() {
 }
 
 /**
+ * Check collision between two camels
+ */
+function checkCollision(camel1, camel2) {
+    return camel1.x < camel2.x + camel2.width &&
+           camel1.x + camel1.width > camel2.x &&
+           camel1.y < camel2.y + camel2.height &&
+           camel1.y + camel1.height > camel2.y;
+}
+
+/**
+ * Handle collision between two camels
+ */
+function handleCollision(camel1, camel2) {
+    // Calculate collision normal (direction from camel1 to camel2)
+    const dx = camel2.x - camel1.x;
+    const dy = camel2.y - camel1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance === 0) return; // Avoid division by zero
+    
+    const nx = dx / distance;
+    const ny = dy / distance;
+    
+    // Separate the camels
+    const overlap = (camel1.width + camel2.width) / 2 - distance;
+    if (overlap > 0) {
+        const separationX = nx * overlap * 0.5;
+        const separationY = ny * overlap * 0.5;
+        
+        camel1.x -= separationX;
+        camel1.y -= separationY;
+        camel2.x += separationX;
+        camel2.y += separationY;
+    }
+    
+    // Calculate relative velocity
+    const relativeVelocityX = camel2.velocityX - camel1.velocityX;
+    const relativeVelocityY = camel2.velocityY - camel1.velocityY;
+    
+    // Calculate relative velocity along collision normal
+    const velocityAlongNormal = relativeVelocityX * nx + relativeVelocityY * ny;
+    
+    // Don't resolve if velocities are separating
+    if (velocityAlongNormal > 0) return;
+    
+    // Calculate restitution (bounciness)
+    const restitution = 0.6;
+    
+    // Calculate impulse scalar
+    const impulseScalar = -(1 + restitution) * velocityAlongNormal;
+    impulseScalar /= 2; // Since both camels have equal mass
+    
+    // Apply impulse
+    const impulseX = impulseScalar * nx;
+    const impulseY = impulseScalar * ny;
+    
+    camel1.velocityX -= impulseX;
+    camel1.velocityY -= impulseY;
+    camel2.velocityX += impulseX;
+    camel2.velocityY += impulseY;
+    
+    // Add some random rotation when colliding
+    camel1.rotationSpeed += (Math.random() - 0.5) * 0.2;
+    camel2.rotationSpeed += (Math.random() - 0.5) * 0.2;
+}
+
+/**
  * Update camel physics
  */
 function updateCamels() {
@@ -165,6 +232,15 @@ function updateCamels() {
             camels.splice(index, 1);
         }
     });
+    
+    // Check collisions between all camels
+    for (let i = 0; i < camels.length; i++) {
+        for (let j = i + 1; j < camels.length; j++) {
+            if (checkCollision(camels[i], camels[j])) {
+                handleCollision(camels[i], camels[j]);
+            }
+        }
+    }
 }
 
 /**
