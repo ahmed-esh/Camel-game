@@ -12,6 +12,8 @@ let gravity = 0.5;
 let groundY;
 let isGameStarted = false;
 let backgroundMusic, camelSound;
+let collisionsEnabled = true;
+let shovelActive = false;
 
 // Initialize the game
 function init() {
@@ -34,6 +36,8 @@ function init() {
     
     // Add event listeners
     document.getElementById('spawnButton').addEventListener('click', startGame);
+    document.getElementById('shovelButton').addEventListener('click', handleShovelClick);
+    document.getElementById('caravanButton').addEventListener('click', handleCaravanClick);
     window.addEventListener('resize', onWindowResize);
     
     // Start animation loop
@@ -242,11 +246,13 @@ function updateCamels() {
         }
     });
     
-    // Check collisions between all camels
-    for (let i = 0; i < camels.length; i++) {
-        for (let j = i + 1; j < camels.length; j++) {
-            if (checkCollision(camels[i], camels[j])) {
-                handleCollision(camels[i], camels[j]);
+    // Check collisions between all camels (only if collisions are enabled)
+    if (collisionsEnabled) {
+        for (let i = 0; i < camels.length; i++) {
+            for (let j = i + 1; j < camels.length; j++) {
+                if (checkCollision(camels[i], camels[j])) {
+                    handleCollision(camels[i], camels[j]);
+                }
             }
         }
     }
@@ -330,6 +336,52 @@ function animate() {
     
     // Continue animation
     requestAnimationFrame(animate);
+}
+
+/**
+ * Handle shovel button click
+ */
+function handleShovelClick() {
+    if (shovelActive) return; // Prevent multiple activations
+    
+    shovelActive = true;
+    collisionsEnabled = false;
+    
+    // Add active class for visual feedback
+    const shovelButton = document.getElementById('shovelButton');
+    shovelButton.classList.add('active');
+    
+    // Increase gravity to make camels fall faster
+    const originalGravity = gravity;
+    gravity = 2; // Much stronger gravity
+    
+    // Make all camels fall down faster
+    camels.forEach(camel => {
+        camel.velocityY += 5; // Push them down
+        camel.velocityX *= 0.5; // Reduce horizontal movement
+    });
+    
+    // After 10 seconds, remove camels and restore collisions
+    setTimeout(() => {
+        // Remove all camels but keep counter
+        camels = [];
+        
+        // Restore gravity and collisions
+        gravity = originalGravity;
+        collisionsEnabled = true;
+        shovelActive = false;
+        
+        // Remove active class
+        shovelButton.classList.remove('active');
+    }, 10000); // 10 seconds
+}
+
+/**
+ * Handle caravan button click (placeholder for future functionality)
+ */
+function handleCaravanClick() {
+    // Placeholder - functionality to be added later
+    console.log('Caravan button clicked');
 }
 
 // Start the game when the page loads
