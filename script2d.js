@@ -12,7 +12,7 @@ let gravity = 0.5;
 let groundY;
 let isGameStarted = false;
 let backgroundMusic, camelSound;
-let collisionsEnabled = true;
+let groundColliderEnabled = true;
 let shovelActive = false;
 
 // Initialize the game
@@ -221,16 +221,16 @@ function updateCamels() {
             camel.x = Math.max(0, Math.min(canvas.width - camel.width, camel.x));
         }
         
-        // Land on ground
-        if (camel.y >= groundY - camel.height) {
+        // Land on ground (only if ground collider is enabled)
+        if (groundColliderEnabled && camel.y >= groundY - camel.height) {
             camel.y = groundY - camel.height;
             camel.velocityY *= -0.3; // Bounce with energy loss
             camel.velocityX *= 0.8; // Friction
             camel.rotationSpeed *= 0.9; // Slow down rotation
         }
         
-        // Stop very slow movements
-        if (Math.abs(camel.velocityY) < 0.1 && camel.y >= groundY - camel.height - 5) {
+        // Stop very slow movements (only if ground collider is enabled)
+        if (groundColliderEnabled && Math.abs(camel.velocityY) < 0.1 && camel.y >= groundY - camel.height - 5) {
             camel.velocityY = 0;
             camel.rotationSpeed *= 0.8; // Gradually stop rotation when landed
         }
@@ -240,19 +240,17 @@ function updateCamels() {
             camel.rotationSpeed = 0;
         }
         
-        // Remove camels that fall off screen (optional)
+        // Remove camels that fall off screen
         if (camel.y > canvas.height + 100) {
             camels.splice(index, 1);
         }
     });
     
-    // Check collisions between all camels (only if collisions are enabled)
-    if (collisionsEnabled) {
-        for (let i = 0; i < camels.length; i++) {
-            for (let j = i + 1; j < camels.length; j++) {
-                if (checkCollision(camels[i], camels[j])) {
-                    handleCollision(camels[i], camels[j]);
-                }
+    // Check collisions between all camels (always enabled)
+    for (let i = 0; i < camels.length; i++) {
+        for (let j = i + 1; j < camels.length; j++) {
+            if (checkCollision(camels[i], camels[j])) {
+                handleCollision(camels[i], camels[j]);
             }
         }
     }
@@ -345,7 +343,7 @@ function handleShovelClick() {
     if (shovelActive) return; // Prevent multiple activations
     
     shovelActive = true;
-    collisionsEnabled = false;
+    groundColliderEnabled = false; // Disable ground collider so camels fall through
     
     // Add active class for visual feedback
     const shovelButton = document.getElementById('shovelButton');
@@ -358,17 +356,16 @@ function handleShovelClick() {
     // Make all camels fall down faster
     camels.forEach(camel => {
         camel.velocityY += 5; // Push them down
-        camel.velocityX *= 0.5; // Reduce horizontal movement
     });
     
-    // After 10 seconds, remove camels and restore collisions
+    // After 10 seconds, remove camels and restore ground collider
     setTimeout(() => {
-        // Remove all camels but keep counter
-        camels = [];
+        // Remove all camels that have fallen off screen (they'll be removed automatically)
+        // Camels falling through will be removed in the update loop when y > canvas.height + 100
         
-        // Restore gravity and collisions
+        // Restore gravity and ground collider
         gravity = originalGravity;
-        collisionsEnabled = true;
+        groundColliderEnabled = true; // Re-enable ground collider so new camels don't fall through
         shovelActive = false;
         
         // Remove active class
