@@ -50,6 +50,16 @@ body {
     object-fit: contain;
 }
 
+.camel-icon {
+    width: 44px; /* 10% bigger (40px * 1.1) */
+    height: 44px;
+}
+
+.gold-icon {
+    width: 56px; /* 40% bigger (40px * 1.4) */
+    height: 56px;
+}
+
 #counter, #goldAmount {
     font-size: 36px;
     font-weight: bold;
@@ -180,6 +190,16 @@ body {
     .counter-icon {
         width: 30px;
         height: 30px;
+    }
+    
+    .camel-icon {
+        width: 33px; /* 10% bigger (30px * 1.1) */
+        height: 33px;
+    }
+    
+    .gold-icon {
+        width: 42px; /* 40% bigger (30px * 1.4) */
+        height: 42px;
     }
     
     #counter, #goldAmount {
