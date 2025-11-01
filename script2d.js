@@ -7,6 +7,7 @@
 let canvas, ctx;
 let camels = [];
 let counter = 0;
+let goldAmount = 0;
 let camelImage;
 let gravity = 0.5;
 let groundY;
@@ -14,6 +15,8 @@ let isGameStarted = false;
 let backgroundMusic, camelSound;
 let groundColliderEnabled = true;
 let shovelActive = false;
+let caravanActive = false;
+let caravanTimer = null;
 
 // Initialize the game
 function init() {
@@ -39,6 +42,10 @@ function init() {
     document.getElementById('shovelButton').addEventListener('click', handleShovelClick);
     document.getElementById('caravanButton').addEventListener('click', handleCaravanClick);
     window.addEventListener('resize', onWindowResize);
+    
+    // Initialize counters and button states
+    updateCounters();
+    updateCaravanButton();
     
     // Start animation loop
     animate();
@@ -106,7 +113,8 @@ function spawnCamel() {
     
     // Increment counter
     counter++;
-    document.getElementById('counter').textContent = counter;
+    updateCounters();
+    updateCaravanButton();
     
     // Create new camel object
     const camel = {
@@ -358,7 +366,7 @@ function handleShovelClick() {
         camel.velocityY += 5; // Push them down
     });
     
-    // After 10 seconds, remove camels and restore ground collider
+    // After 3 seconds, remove camels and restore ground collider
     setTimeout(() => {
         // Remove all camels that have fallen off screen (they'll be removed automatically)
         // Camels falling through will be removed in the update loop when y > canvas.height + 100
@@ -370,15 +378,83 @@ function handleShovelClick() {
         
         // Remove active class
         shovelButton.classList.remove('active');
-    }, 10000); // 10 seconds
+    }, 3000); // 3 seconds
 }
 
 /**
- * Handle caravan button click (placeholder for future functionality)
+ * Update counter displays
+ */
+function updateCounters() {
+    document.getElementById('counter').textContent = counter;
+    document.getElementById('goldAmount').textContent = goldAmount;
+}
+
+/**
+ * Update caravan button state based on camel count
+ */
+function updateCaravanButton() {
+    const caravanButton = document.getElementById('caravanButton');
+    
+    if (counter >= 500 && !caravanActive) {
+        caravanButton.classList.remove('disabled');
+        caravanButton.title = 'Send a caravan to get gold, costs 500 camels';
+    } else {
+        caravanButton.classList.add('disabled');
+        caravanButton.title = 'Needs 500 camels to activate';
+    }
+}
+
+/**
+ * Handle caravan button click
  */
 function handleCaravanClick() {
-    // Placeholder - functionality to be added later
-    console.log('Caravan button clicked');
+    // Can't use if disabled or already active
+    if (counter < 500 || caravanActive) {
+        return;
+    }
+    
+    // Subtract 500 camels
+    counter -= 500;
+    updateCounters();
+    
+    // Disable button and set active
+    caravanActive = true;
+    const caravanButton = document.getElementById('caravanButton');
+    caravanButton.classList.add('disabled');
+    
+    // Show progress bar
+    const progressBar = document.getElementById('caravanProgress');
+    const progressFill = document.getElementById('caravanProgressFill');
+    progressBar.classList.remove('hidden');
+    progressFill.style.width = '0%';
+    
+    // Start progress bar animation (1 minute = 60 seconds)
+    const duration = 60000; // 60 seconds in milliseconds
+    const startTime = Date.now();
+    
+    function updateProgress() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / duration) * 100, 100);
+        progressFill.style.width = progress + '%';
+        
+        if (progress < 100) {
+            caravanTimer = requestAnimationFrame(updateProgress);
+        } else {
+            // Timer complete - award gold
+            const goldReward = Math.floor(Math.random() * (21 - 12 + 1)) + 12; // Random between 12-21
+            goldAmount += goldReward;
+            updateCounters();
+            
+            // Hide progress bar
+            progressBar.classList.add('hidden');
+            caravanActive = false;
+            
+            // Update button state
+            updateCaravanButton();
+        }
+    }
+    
+    caravanTimer = requestAnimationFrame(updateProgress);
 }
 
 // Start the game when the page loads
