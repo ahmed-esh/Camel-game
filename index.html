@@ -3,51 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camel Drop Game - 2D</title>
+    <title>Camel Drop Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Counters display on the right -->
-    <div id="counters">
-        <div id="camelCounter" class="counter-item">
-            <img src="assets/camel icon.png" alt="Camel" class="counter-icon camel-icon">
-            <span id="counter">0</span>
-        </div>
-        <div id="goldCounter" class="counter-item">
-            <img src="assets/gold sign.png" alt="Gold" class="counter-icon gold-icon">
-            <span id="goldAmount">0</span>
-        </div>
-    </div>
-    
-    <!-- Icon buttons at top left -->
-    <div id="iconButtons">
-        <button id="shovelButton" class="icon-button" title="Clear all camels">
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Left Panel: Action Buttons -->
+    <div id="leftPanel">
+        <button id="shovelButton" class="icon-button hidden"
+            data-tooltip="Shovel: Sweep all visible camels off the screen. They fall through the ground!">
             <img src="assets/shovel icon.png" alt="Shovel">
         </button>
-        <button id="caravanButton" class="icon-button" title="Caravan">
+        <button id="caravanButton" class="icon-button hidden disabled"
+            data-tooltip="Caravan: Spend 100 camels to send a trading caravan. Returns in 30 game days with 5 items — mostly silver, with a chance of gold or a rare hotdog.">
             <img src="assets/camel caravan icon.png" alt="Caravan">
         </button>
-        <!-- Progress bar for caravan -->
-        <div id="caravanProgress" class="progress-bar hidden">
-            <div id="caravanProgressFill" class="progress-fill"></div>
+        <button id="banquetButton" class="icon-button hidden disabled"
+            data-tooltip="Banquet: Spend 10,000 camels to host a grand feast. Takes 10 game days. Produces 4 hotdogs.">
+            <span class="emoji-icon">🎉</span>
+        </button>
+        <button id="raceButton" class="icon-button hidden disabled"
+            data-tooltip="Race: Spend 25,000 camels to enter a grand race. Takes 25 game days. Produces 1 hotdog + 3 warrior camels.">
+            <span class="emoji-icon">🏁</span>
+        </button>
+    </div>
+
+    <!-- Right Panel: Counter + Chest -->
+    <div id="rightPanel">
+        <div id="camelCounter" class="counter-item">
+            <img src="assets/camel icon.png" alt="Camel" class="counter-icon">
+            <span id="camelCountDisplay">0</span>
+        </div>
+        <button id="chestButton" class="icon-button"
+            data-tooltip="Inventory: View all resources, buy farms, build university, and track active processes.">
+            <span class="emoji-icon">🧰</span>
+        </button>
+    </div>
+
+    <!-- Inventory Slide Panel -->
+    <div id="inventoryPanel">
+        <div id="inventoryHeader">
+            <span>📦 Inventory</span>
+            <button id="closeInventory" class="close-btn">✕</button>
+        </div>
+        <div id="gameDateDisplay" class="inv-section"></div>
+        <div id="resourceList" class="inv-section"></div>
+        <div id="buildingActions" class="inv-section"></div>
+        <div id="activeProcesses" class="inv-section"></div>
+    </div>
+
+    <!-- Log Panel -->
+    <div id="logPanel"></div>
+
+    <!-- Menu Button -->
+    <button id="menuButton" data-tooltip="Game Menu: Save, load, or adjust settings.">☰</button>
+
+    <!-- Menu Panel -->
+    <div id="menuPanel">
+        <div id="menuHeader">
+            <span>⚙️ Menu</span>
+            <button id="closeMenu" class="close-btn">✕</button>
+        </div>
+        <div id="menuContent">
+            <button id="newGameBtn" class="menu-btn">🆕 New Game</button>
+            <button id="saveGameBtn" class="menu-btn">💾 Save Game</button>
+            <button id="loadGameBtn" class="menu-btn">📂 Load Game</button>
+            <button id="toggleMusicBtn" class="menu-btn">🎵 Music: ON</button>
+            <button id="toggleSfxBtn" class="menu-btn">🔊 SFX: ON</button>
+            <button id="hotdogBtn" class="menu-btn">🌭 Hotdog</button>
+        </div>
+        <div id="saveLoadArea" class="hidden">
+            <textarea id="saveLoadText" rows="3"></textarea>
+            <button id="saveLoadConfirm" class="menu-btn">✅ Confirm Load</button>
         </div>
     </div>
-    
-    <!-- Spawn button -->
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="hidden"></div>
+
+    <!-- Spawn Button -->
     <button id="spawnButton">Drop a Camel!</button>
-    
-    <!-- Game canvas -->
-    <canvas id="gameCanvas"></canvas>
-    
-    <!-- Audio elements -->
+
+    <!-- Audio -->
     <audio id="backgroundMusic" loop>
-        <source src="assets/ES_Dreamz - Jerry Lacey.mp3" type="audio/mpeg">
+        <source src="assets/soundsssss.wav" type="audio/wav">
     </audio>
     <audio id="camelSound">
         <source src="assets/camel-male-sound-effect-370202.mp3" type="audio/mpeg">
     </audio>
-    
-    <!-- Main game script -->
+
     <script src="script2d.js"></script>
 </body>
 </html>
