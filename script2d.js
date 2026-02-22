@@ -27,6 +27,8 @@ const RACE_REWARD_HOTDOGS = 1;
 const RACE_REWARD_WARRIORS = 3;
 const UNIVERSITY_COST_GOLD = 100;
 const CONVERSION_DURATION = 100;
+const HUNT_COST_SILVER = 3;
+const HUNT_REWARD_CAMELS = 50;
 const MAX_VISUAL_CAMELS = 400;
 const MAX_LOG_ENTRIES = 5;
 const GAME_EPOCH = new Date(2014, 9, 24);
@@ -77,6 +79,7 @@ function freshState() {
         raceEverAffordable: false,
         farmEverAffordable: false,
         universityEverAffordable: false,
+        huntUnlocked: false,
         firstCaravanSent: false,
         silverEverCollected: false,
         goldEverCollected: false,
@@ -135,6 +138,7 @@ function cacheDOMRefs() {
     dom.caravanBtn = document.getElementById('caravanButton');
     dom.banquetBtn = document.getElementById('banquetButton');
     dom.raceBtn = document.getElementById('raceButton');
+    dom.huntBtn = document.getElementById('huntButton');
     dom.chestBtn = document.getElementById('chestButton');
     dom.camelDisplay = document.getElementById('camelCountDisplay');
     dom.inventoryPanel = document.getElementById('inventoryPanel');
@@ -165,6 +169,7 @@ function setupEventListeners() {
     dom.caravanBtn.addEventListener('click', handleCaravanClick);
     dom.banquetBtn.addEventListener('click', handleBanquetClick);
     dom.raceBtn.addEventListener('click', handleRaceClick);
+    dom.huntBtn.addEventListener('click', handleHuntClick);
     dom.chestBtn.addEventListener('click', toggleInventory);
     dom.closeInventoryBtn.addEventListener('click', toggleInventory);
     dom.menuBtn.addEventListener('click', toggleMenu);
@@ -532,6 +537,22 @@ function resolveCaravanLoot() {
 }
 
 /* ============================================================
+   HUNT SYSTEM
+   ============================================================ */
+function handleHuntClick() {
+    if (gs.silver < HUNT_COST_SILVER) return;
+    gs.silver -= HUNT_COST_SILVER;
+    gs.camelCount += HUNT_REWARD_CAMELS;
+
+    const visualToSpawn = Math.min(HUNT_REWARD_CAMELS, 15);
+    for (let i = 0; i < visualToSpawn; i++) {
+        createCamelEntity();
+    }
+
+    addLog('Hunt successful! Captured ' + HUNT_REWARD_CAMELS + ' 🐪 camels.');
+}
+
+/* ============================================================
    FARM SYSTEM
    ============================================================ */
 function buyFarmWithSilver() {
@@ -664,6 +685,11 @@ function checkUnlocks() {
         addLog('🏕️ Caravan unlocked! Spend 100 camels to trade.');
     }
 
+    if (!gs.huntUnlocked && gs.silver >= HUNT_COST_SILVER) {
+        gs.huntUnlocked = true;
+        addLog('🏹 Hunt unlocked! Spend 3 silver to capture 50 wild camels.');
+    }
+
     if (!gs.farmEverAffordable && (gs.silver >= FARM_COST_SILVER || gs.gold >= FARM_COST_GOLD)) {
         gs.farmEverAffordable = true;
         addLog('🏡 Farms available! Check the inventory to build one.');
@@ -702,10 +728,12 @@ function updateUI() {
 
     dom.shovelBtn.classList.toggle('hidden', !gs.shovelUnlocked);
     dom.caravanBtn.classList.toggle('hidden', !gs.caravanUnlocked);
+    dom.huntBtn.classList.toggle('hidden', !gs.huntUnlocked);
     dom.banquetBtn.classList.toggle('hidden', !gs.banquetEverAffordable);
     dom.raceBtn.classList.toggle('hidden', !gs.raceEverAffordable);
 
     dom.caravanBtn.classList.toggle('disabled', gs.camelCount < CARAVAN_COST);
+    dom.huntBtn.classList.toggle('disabled', gs.silver < HUNT_COST_SILVER);
     dom.banquetBtn.classList.toggle('disabled', gs.camelCount < BANQUET_COST);
     dom.raceBtn.classList.toggle('disabled', gs.camelCount < RACE_COST);
 }
@@ -962,10 +990,10 @@ function positionTooltip(anchor) {
 }
 
 /* ============================================================
-   CHEAT SYSTEM (L + K held = 4x game speed)
+   CHEAT SYSTEM (hold Shift = 4x game speed)
    ============================================================ */
 function updateCheatMultiplier() {
-    timeMultiplier = (keysHeld['l'] && keysHeld['k']) ? 4 : 1;
+    timeMultiplier = keysHeld['shift'] ? 4 : 1;
 }
 
 /* ============================================================
