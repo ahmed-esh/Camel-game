@@ -10,7 +10,9 @@
 const SECONDS_PER_GAME_DAY = 120;
 const CAMEL_SPAWN_INTERVAL = 6;
 const CARAVAN_COST = 100;
-const CARAVAN_DURATION = 30;
+const FIRST_CARAVAN_DURATION = 3;
+const CARAVAN_DURATION_MIN = 5;
+const CARAVAN_DURATION_MAX = 11;
 const FARM_COST_SILVER = 99;
 const FARM_COST_GOLD = 1;
 const FARM_UPKEEP_SILVER = 50;
@@ -75,6 +77,11 @@ function freshState() {
         raceEverAffordable: false,
         farmEverAffordable: false,
         universityEverAffordable: false,
+        firstCaravanSent: false,
+        silverEverCollected: false,
+        goldEverCollected: false,
+        hotdogsEverCollected: false,
+        warriorCamelsEverCollected: false,
         log: []
     };
 }
@@ -94,6 +101,8 @@ let lastFrameTime = 0;
 let lastSlowUITime = 0;
 let logDirty = false;
 let dom = {};
+let lastWallTime = 0;
+let logicInterval = null;
 
 /* ============================================================
    INITIALIZATION
@@ -113,7 +122,11 @@ function init() {
     setupTooltips();
     updateUI();
 
-    requestAnimationFrame(gameLoop);
+    lastWallTime = Date.now();
+
+    logicInterval = setInterval(backgroundLogicTick, 1000);
+
+    requestAnimationFrame(renderLoop);
 }
 
 function cacheDOMRefs() {
@@ -218,19 +231,22 @@ function unlockAudio() {
 function spawnCamel(playSound) {
     gs.camelCount++;
 
+    spawnVisualCamel();
+
+    if (playSound && audioUnlocked && sfxEnabled) {
+        camelSound.currentTime = 0;
+        camelSound.play().catch(() => {});
+    }
+}
+
+function spawnVisualCamel() {
     if (visualCamels.length >= MAX_VISUAL_CAMELS) {
         const idx = visualCamels.findIndex(c =>
             Math.abs(c.velocityY) < 0.5 && c.y >= groundY - c.height - 5
         );
         if (idx >= 0) visualCamels.splice(idx, 1);
     }
-
     createCamelEntity();
-
-    if (playSound && audioUnlocked && sfxEnabled) {
-        camelSound.currentTime = 0;
-        camelSound.play().catch(() => {});
-    }
 }
 
 function createCamelEntity() {
@@ -433,16 +449,31 @@ function daysRemaining(endDay) {
 
 /* ============================================================
    AUTO PRODUCTION (real-time, NOT affected by cheat)
+   Handles large deltas from background tabs gracefully.
    ============================================================ */
 function updateAutoProduction(deltaSec) {
     gs.spawnTimer += deltaSec;
-    while (gs.spawnTimer >= CAMEL_SPAWN_INTERVAL) {
-        gs.spawnTimer -= CAMEL_SPAWN_INTERVAL;
-        const activeFarms = gs.farms.filter(f => f.active).length;
-        const totalToSpawn = 1 + activeFarms;
-        for (let i = 0; i < totalToSpawn; i++) {
-            spawnCamel(false);
-        }
+    const intervals = Math.floor(gs.spawnTimer / CAMEL_SPAWN_INTERVAL);
+    if (intervals <= 0) return;
+    gs.spawnTimer -= intervals * CAMEL_SPAWN_INTERVAL;
+
+    const activeFarms = gs.farms.filter(f => f.active).length;
+    const camelsPerInterval = 1 + activeFarms;
+    const totalCamels = intervals * camelsPerInterval;
+
+    gs.camelCount += totalCamels;
+
+    const visualToSpawn = Math.min(totalCamels, 15);
+    for (let i = 0; i < visualToSpawn; i++) {
+        createCamelEntity();
+    }
+
+    while (visualCamels.length > MAX_VISUAL_CAMELS) {
+        const idx = visualCamels.findIndex(c =>
+            Math.abs(c.velocityY) < 0.5 && c.y >= groundY - c.height - 5
+        );
+        if (idx >= 0) visualCamels.splice(idx, 1);
+        else break;
     }
 }
 
@@ -452,11 +483,20 @@ function updateAutoProduction(deltaSec) {
 function handleCaravanClick() {
     if (gs.camelCount < CARAVAN_COST) return;
     gs.camelCount -= CARAVAN_COST;
+
+    let duration;
+    if (!gs.firstCaravanSent) {
+        duration = FIRST_CARAVAN_DURATION;
+        gs.firstCaravanSent = true;
+    } else {
+        duration = CARAVAN_DURATION_MIN + Math.floor(Math.random() * (CARAVAN_DURATION_MAX - CARAVAN_DURATION_MIN + 1));
+    }
+
     gs.caravans.push({
         departDay: gs.currentGameDay,
-        returnDay: gs.currentGameDay + CARAVAN_DURATION
+        returnDay: gs.currentGameDay + duration
     });
-    addLog('Caravan dispatched! Returns in ' + CARAVAN_DURATION + ' days.');
+    addLog('Caravan dispatched! Returns in ' + duration + ' days.');
 }
 
 function checkCaravanCompletions() {
@@ -474,13 +514,18 @@ function resolveCaravanLoot() {
     if (roll < 0.01) {
         gs.hotdogs += 1;
         gs.silver += 4;
+        gs.hotdogsEverCollected = true;
+        gs.silverEverCollected = true;
         msg = 'Caravan returned with 1 🌭 Hotdog + 4 🥈 Silver!';
     } else if (roll < 0.12) {
         gs.gold += 1;
         gs.silver += 4;
+        gs.goldEverCollected = true;
+        gs.silverEverCollected = true;
         msg = 'Caravan returned with 1 🥇 Gold + 4 🥈 Silver!';
     } else {
         gs.silver += 5;
+        gs.silverEverCollected = true;
         msg = 'Caravan returned with 5 🥈 Silver.';
     }
     addLog(msg);
@@ -541,6 +586,7 @@ function checkBanquetCompletions() {
         if (gs.currentGameDay >= gs.banquets[i].endDay) {
             gs.banquets.splice(i, 1);
             gs.hotdogs += BANQUET_REWARD_HOTDOGS;
+            gs.hotdogsEverCollected = true;
             addLog('Banquet complete! Received ' + BANQUET_REWARD_HOTDOGS + ' 🌭 Hotdogs.');
         }
     }
@@ -565,6 +611,8 @@ function checkRaceCompletions() {
             gs.races.splice(i, 1);
             gs.hotdogs += RACE_REWARD_HOTDOGS;
             gs.warriorCamels += RACE_REWARD_WARRIORS;
+            gs.hotdogsEverCollected = true;
+            gs.warriorCamelsEverCollected = true;
             addLog('Race finished! +' + RACE_REWARD_HOTDOGS + ' 🌭, +' + RACE_REWARD_WARRIORS + ' ⚔️ Warriors.');
         }
     }
@@ -596,6 +644,7 @@ function checkConversionCompletions() {
         if (gs.currentGameDay >= gs.conversions[i].endDay) {
             gs.conversions.splice(i, 1);
             gs.warriorCamels += 1;
+            gs.warriorCamelsEverCollected = true;
             addLog('Conversion complete! +1 ⚔️ Warrior Camel.');
         }
     }
@@ -696,12 +745,12 @@ function updateInventoryContent() {
     dom.gameDateDisplay.innerHTML =
         '📅 <strong>Day ' + Math.floor(gs.currentGameDay) + '</strong> — ' + formatDate(getCalendarDate());
 
-    dom.resourceList.innerHTML =
-        resRow('assets/camel icon.png', true, 'Camels', gs.camelCount) +
-        resRow('🥈', false, 'Silver', gs.silver) +
-        resRow('assets/gold sign.png', true, 'Gold', gs.gold) +
-        resRow('🌭', false, 'Hotdogs', gs.hotdogs) +
-        resRow('⚔️', false, 'Warrior Camels', gs.warriorCamels);
+    let resHTML = resRow('assets/camel icon.png', true, 'Camels', gs.camelCount);
+    if (gs.silverEverCollected) resHTML += resRow('🥈', false, 'Silver', gs.silver);
+    if (gs.goldEverCollected) resHTML += resRow('assets/gold sign.png', true, 'Gold', gs.gold);
+    if (gs.hotdogsEverCollected) resHTML += resRow('🌭', false, 'Hotdogs', gs.hotdogs);
+    if (gs.warriorCamelsEverCollected) resHTML += resRow('⚔️', false, 'Warrior Camels', gs.warriorCamels);
+    dom.resourceList.innerHTML = resHTML;
 
     let bld = '';
     if (gs.farmEverAffordable) {
@@ -782,6 +831,7 @@ function handleNewGame() {
     visualCamels = [];
     audioUnlocked = false;
     logDirty = true;
+    lastWallTime = Date.now();
     menuOpen = false;
     dom.menuPanel.classList.remove('open');
     updateUI();
@@ -809,6 +859,7 @@ function confirmLoad() {
         const loaded = decodeSave(dom.saveLoadText.value.trim());
         gs = Object.assign(freshState(), loaded);
         visualCamels = [];
+        lastWallTime = Date.now();
         addLog('Game loaded successfully!');
         menuOpen = false;
         dom.menuPanel.classList.remove('open');
@@ -842,15 +893,32 @@ function toggleSfx() {
 }
 
 function openHotdogPage() {
+    const photos = [
+        'hotdogs/Beatings10.webp',
+        'hotdogs/Camel-dragged-egypt-camel-investigation.webp',
+        'hotdogs/Camel-market-5.webp',
+        'hotdogs/camel-unique-knee-pain-dbf39741.jpeg',
+        'hotdogs/default.avif',
+        'hotdogs/df3cc22c-86af-4f54-ae9c-3d4a13ab1135_16x9_1200x676.webp',
+        'hotdogs/e9a773d70f4673cc8b5a39538be1146c.jpeg',
+        'hotdogs/images (2).jpeg',
+        'hotdogs/images (3).jpeg',
+        'hotdogs/images (4).jpeg',
+        'hotdogs/Man-beating-camel-with-stick.webp',
+        'hotdogs/merlin_150570327_717f499f-c841-49e7-af12-03fdb47a5ed0-articleLarge.webp'
+    ];
+    const base = window.location.href.replace(/[^/]*$/, '');
+    const imgs = photos.map(p =>
+        '<img src="' + base + p + '" style="width:100%;max-width:700px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);">'
+    ).join('');
     const w = window.open('', '_blank');
     if (w) {
         w.document.write(
-            '<!DOCTYPE html><html><head><title>Hotdog Dimension</title></head>' +
-            '<body style="margin:0;display:flex;align-items:center;justify-content:center;' +
-            'height:100vh;background:#FFF8DC;font-family:Arial,sans-serif;flex-direction:column;">' +
-            '<h1 style="font-size:4em;">🌭</h1>' +
-            '<p style="font-size:1.5em;color:#8B4513;">Welcome to the Hotdog Dimension.</p>' +
-            '<p style="color:#A0522D;">More coming soon...</p>' +
+            '<!DOCTYPE html><html><head><title>🌭 Hotdog Dimension</title></head>' +
+            '<body style="margin:0;padding:40px 20px;background:#1a1410;font-family:Arial,sans-serif;' +
+            'display:flex;flex-direction:column;align-items:center;gap:24px;">' +
+            '<h1 style="color:#FFD700;font-size:2em;margin:0;">🌭 Hotdog Dimension 🌭</h1>' +
+            imgs +
             '</body></html>'
         );
         w.document.close();
@@ -901,13 +969,13 @@ function updateCheatMultiplier() {
 }
 
 /* ============================================================
-   MAIN GAME LOOP
+   GAME LOGIC TICK (runs via setInterval — works in background tabs)
    ============================================================ */
-function gameLoop(timestamp) {
-    if (!lastFrameTime) lastFrameTime = timestamp;
-    const rawDelta = timestamp - lastFrameTime;
-    lastFrameTime = timestamp;
-    const deltaSec = Math.min(rawDelta / 1000, 0.25);
+function backgroundLogicTick() {
+    const now = Date.now();
+    const deltaSec = Math.min((now - lastWallTime) / 1000, 3600);
+    lastWallTime = now;
+    if (deltaSec <= 0) return;
 
     advanceGameTime(deltaSec);
     updateAutoProduction(deltaSec);
@@ -918,13 +986,18 @@ function gameLoop(timestamp) {
     checkConversionCompletions();
     checkFarmUpkeep();
     checkUnlocks();
+}
 
+/* ============================================================
+   RENDER LOOP (rAF — only when tab is visible)
+   ============================================================ */
+function renderLoop(timestamp) {
     updatePhysics();
     render();
     updateUI();
     updateSlowUI(timestamp);
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(renderLoop);
 }
 
 /* ============================================================
