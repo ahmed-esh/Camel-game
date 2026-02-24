@@ -192,7 +192,7 @@ body {
     position: fixed;
     top: 0;
     right: 0;
-    width: 340px;
+    width: min(560px, 92vw);
     height: 100vh;
     z-index: 25;
     background: rgba(15, 12, 8, 0.93);
@@ -202,6 +202,17 @@ body {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     border-left: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+#inventoryPanel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 140px;
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 215, 0, 0) 100%);
+    pointer-events: none;
 }
 
 #inventoryPanel.open {
@@ -242,6 +253,21 @@ body {
 .inv-section {
     padding: 14px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.inv-section-title {
+    color: #FFD700;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 #gameDateDisplay {
@@ -471,6 +497,16 @@ body {
 
 .menu-btn:last-child {
     margin-bottom: 0;
+}
+
+.menu-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+}
+
+.menu-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.07);
 }
 
 #saveLoadArea {
