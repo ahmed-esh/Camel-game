@@ -88,6 +88,8 @@ function freshState() {
         farmEverAffordable: false,
         universityEverAffordable: false,
         huntUnlocked: false,
+        mineSilverUnlocked: false,
+        mineGoldUnlocked: false,
         firstCaravanSent: false,
         silverEverCollected: false,
         goldEverCollected: false,
@@ -102,6 +104,8 @@ function normalizeState() {
     gs.goldMines = Number.isFinite(gs.goldMines) ? gs.goldMines : 0;
     gs.mineSilverProgress = Number.isFinite(gs.mineSilverProgress) ? gs.mineSilverProgress : 0;
     gs.mineGoldProgress = Number.isFinite(gs.mineGoldProgress) ? gs.mineGoldProgress : 0;
+    gs.mineSilverUnlocked = Boolean(gs.mineSilverUnlocked) || gs.camelCount >= SILVER_MINE_COST_CAMELS || gs.silverMines > 0;
+    gs.mineGoldUnlocked = Boolean(gs.mineGoldUnlocked) || gs.camelCount >= GOLD_MINE_COST_CAMELS || gs.goldMines > 0;
 
     if (!Array.isArray(gs.farms)) {
         gs.farms = [];
@@ -476,7 +480,7 @@ function handleShovelClick() {
    GAME TIME
    ============================================================ */
 function advanceGameTime(deltaSec) {
-    gs.currentGameDay += (deltaSec * getTimeMultiplier()) / SECONDS_PER_GAME_DAY;
+    gs.currentGameDay += deltaSec / SECONDS_PER_GAME_DAY;
 }
 
 function getTimeMultiplier() {
@@ -800,6 +804,16 @@ function checkUnlocks() {
         addLog('🏹 Hunt unlocked! Spend 3 silver to capture 50 wild camels.');
     }
 
+    if (!gs.mineSilverUnlocked && gs.camelCount >= SILVER_MINE_COST_CAMELS) {
+        gs.mineSilverUnlocked = true;
+        addLog('⛏️ Silver Mine unlocked! Build for 1000 camels.');
+    }
+
+    if (!gs.mineGoldUnlocked && gs.camelCount >= GOLD_MINE_COST_CAMELS) {
+        gs.mineGoldUnlocked = true;
+        addLog('⛏️ Gold Mine unlocked! Build for 5000 camels.');
+    }
+
     if (!gs.farmEverAffordable && (gs.silver >= FARM_COST_SILVER || gs.gold >= FARM_COST_GOLD)) {
         gs.farmEverAffordable = true;
         addLog('🏡 Farms available! Check the inventory to build one.');
@@ -907,18 +921,27 @@ function updateInventoryContent() {
     dom.resourceList.innerHTML = resHTML;
 
     let bld = '';
-    bld += '<div class="build-row">' +
-        '<span class="build-title">⛏️ Mining Grounds</span>' +
-        '<div class="build-btns">' +
-        '<button class="inv-btn" data-action="mineSilver"' +
-        (gs.camelCount < SILVER_MINE_COST_CAMELS ? ' disabled' : '') +
-        ' data-tooltip="Build a silver mine for ' + SILVER_MINE_COST_CAMELS + ' camels. Produces ' + SILVER_MINE_SILVER_PER_DAY + ' silver per game day.">' +
-        'Silver Mine (' + SILVER_MINE_COST_CAMELS + ' 🐪)</button>' +
-        '<button class="inv-btn" data-action="mineGold"' +
-        (gs.camelCount < GOLD_MINE_COST_CAMELS ? ' disabled' : '') +
-        ' data-tooltip="Build a gold mine for ' + GOLD_MINE_COST_CAMELS + ' camels. Produces ' + GOLD_MINE_GOLD_PER_DAY + ' gold per game day.">' +
-        'Gold Mine (' + GOLD_MINE_COST_CAMELS + ' 🐪)</button>' +
-        '</div></div>';
+    if (gs.mineSilverUnlocked || gs.mineGoldUnlocked) {
+        bld += '<div class="build-row">' +
+            '<span class="build-title">⛏️ Mining Grounds</span>' +
+            '<div class="build-btns">';
+
+        if (gs.mineSilverUnlocked) {
+            bld += '<button class="inv-btn" data-action="mineSilver"' +
+                (gs.camelCount < SILVER_MINE_COST_CAMELS ? ' disabled' : '') +
+                ' data-tooltip="Build a silver mine for ' + SILVER_MINE_COST_CAMELS + ' camels. Produces ' + SILVER_MINE_SILVER_PER_DAY + ' silver per game day.">' +
+                'Silver Mine (' + SILVER_MINE_COST_CAMELS + ' 🐪)</button>';
+        }
+
+        if (gs.mineGoldUnlocked) {
+            bld += '<button class="inv-btn" data-action="mineGold"' +
+                (gs.camelCount < GOLD_MINE_COST_CAMELS ? ' disabled' : '') +
+                ' data-tooltip="Build a gold mine for ' + GOLD_MINE_COST_CAMELS + ' camels. Produces ' + GOLD_MINE_GOLD_PER_DAY + ' gold per game day.">' +
+                'Gold Mine (' + GOLD_MINE_COST_CAMELS + ' 🐪)</button>';
+        }
+
+        bld += '</div></div>';
+    }
 
     if (gs.farmEverAffordable) {
         bld += '<div class="build-row">' +
@@ -1172,11 +1195,13 @@ function backgroundLogicTick() {
     const deltaSec = Math.min((now - lastWallTime) / 1000, 3600);
     lastWallTime = now;
     if (deltaSec <= 0) return;
+
+    const simulationDeltaSec = deltaSec * getTimeMultiplier();
     const previousDay = gs.currentGameDay;
 
-    advanceGameTime(deltaSec);
+    advanceGameTime(simulationDeltaSec);
     const elapsedGameDays = gs.currentGameDay - previousDay;
-    updateAutoProduction(deltaSec);
+    updateAutoProduction(simulationDeltaSec);
     updateMineProduction(elapsedGameDays);
 
     checkCaravanCompletions();

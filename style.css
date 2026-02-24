@@ -124,6 +124,16 @@ body {
     pointer-events: none;
 }
 
+.chest-button {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.chest-button:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
 .emoji-icon {
     font-size: 28px;
     line-height: 1;
