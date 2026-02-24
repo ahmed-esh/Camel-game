@@ -456,6 +456,10 @@ body {
     margin-bottom: 8px;
 }
 
+.owned-sub.no-margin {
+    margin-bottom: 0;
+}
+
 .owned-controls {
     display: flex;
     gap: 8px;
@@ -469,6 +473,37 @@ body {
     border: 1px solid rgba(255, 215, 0, 0.22);
     background: rgba(0, 0, 0, 0.35);
     color: #f0e6d0;
+}
+
+.pay-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+    padding: 3px;
+    cursor: pointer;
+}
+
+.pay-switch:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.pay-option {
+    min-width: 58px;
+    text-align: center;
+    font-size: 12px;
+    color: #bcae91;
+    padding: 5px 8px;
+    border-radius: 999px;
+    transition: all 0.2s ease;
+}
+
+.pay-option.active {
+    background: rgba(255, 215, 0, 0.24);
+    color: #fff1c4;
 }
 
 /* ============================================================

@@ -260,7 +260,6 @@ function setupEventListeners() {
 
     dom.buildingActions.addEventListener('click', handleBuildingClick);
     dom.ownershipContent.addEventListener('click', handleOwnedPanelClick);
-    dom.ownershipContent.addEventListener('change', handleOwnedPanelChange);
 
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('keydown', e => {
@@ -317,11 +316,11 @@ function renderOwnershipPanel() {
                 '<div class="owned-sub">Status: ' + status + ' · upkeep in ' + Math.ceil(farm.upkeepRemainingDays) + ' days</div>' +
                 '<div class="owned-controls">' +
                 '<button class="inv-btn" data-owned-action="farmToggle" data-farm-index="' + index + '">' + (farm.enabled ? 'Turn OFF' : 'Turn ON') + '</button>' +
-                '<label class="owned-sub">Pay with</label>' +
-                '<select class="owned-select" data-owned-action="farmPayMode" data-farm-index="' + index + '" ' + (farm.enabled ? '' : 'disabled') + '>' +
-                '<option value="silver"' + (farm.payMode === 'silver' ? ' selected' : '') + '>Silver</option>' +
-                '<option value="gold"' + (farm.payMode === 'gold' ? ' selected' : '') + '>Gold</option>' +
-                '</select>' +
+                '<span class="owned-sub no-margin">Pay with</span>' +
+                '<button class="pay-switch" data-owned-action="farmPayToggle" data-farm-index="' + index + '"' + (farm.enabled ? '' : ' disabled') + '>' +
+                '<span class="pay-option' + (farm.payMode === 'silver' ? ' active' : '') + '">Silver</span>' +
+                '<span class="pay-option' + (farm.payMode === 'gold' ? ' active' : '') + '">Gold</span>' +
+                '</button>' +
                 '</div></div>';
         }).join('');
         return;
@@ -351,15 +350,12 @@ function handleOwnedPanelClick(e) {
     if (action === 'farmToggle') {
         toggleFarmState(Number(btn.dataset.farmIndex));
         renderOwnershipPanel();
-    }
-}
-
-function handleOwnedPanelChange(e) {
-    const select = e.target.closest('[data-owned-action="farmPayMode"]');
-    if (!select) return;
-    const index = Number(select.dataset.farmIndex);
-    if (Number.isFinite(index) && gs.farms[index]) {
-        gs.farms[index].payMode = select.value === 'gold' ? 'gold' : 'silver';
+    } else if (action === 'farmPayToggle') {
+        const index = Number(btn.dataset.farmIndex);
+        if (Number.isFinite(index) && gs.farms[index]) {
+            gs.farms[index].payMode = gs.farms[index].payMode === 'silver' ? 'gold' : 'silver';
+            renderOwnershipPanel();
+        }
     }
 }
 
@@ -388,7 +384,8 @@ function setupInteractionSfx() {
         mine: new Audio('assets/sfx/mines ready.wav'),
         banquet: new Audio('assets/sfx/partysoundd.wav'),
         race: new Audio('assets/sfx/race.wav'),
-        shovel: new Audio('assets/sfx/shovel.mp3')
+        shovel: new Audio('assets/sfx/shovel.mp3'),
+        hunt: new Audio('assets/sfx/ES_Arrows, Shot 34, Bow, 8070 - Epidemic Sound.mp3')
     };
     Object.values(interactionSfx).forEach(sound => {
         sound.volume = 0.75;
@@ -739,6 +736,7 @@ function resolveCaravanLoot() {
    ============================================================ */
 function handleHuntClick() {
     if (gs.silver < HUNT_COST_SILVER) return;
+    playSfx('hunt');
     gs.silver -= HUNT_COST_SILVER;
     gs.camelCount += HUNT_REWARD_CAMELS;
 
@@ -1111,7 +1109,7 @@ function updateInventoryContent() {
 
     if (gs.farmEverAffordable) {
         bld += '<div class="build-row">' +
-            '<div class="build-head"><span class="build-title">🏡 Farm</span>' +
+            '<div class="build-head"><span class="build-title">🏡 Farms</span>' +
             '<button class="manage-btn" data-action="manageFarms"' + (gs.farms.length === 0 ? ' disabled' : '') + '>Manage</button></div>' +
             '<div class="build-btns">' +
             '<button class="inv-btn" data-action="farmSilver"' +
@@ -1157,7 +1155,8 @@ function updateInventoryContent() {
         const st = f.enabled
             ? (f.active ? 'Active (upkeep in ' + upIn + ' days)' : 'Idle (needs upkeep)')
             : 'Off (frozen at ' + upIn + ' days)';
-        proc += '<div class="proc-row">🏡 Farm #' + (i + 1) + ': ' + st + '</div>';
+        const farmName = f.name || ('Farm #' + (i + 1));
+        proc += '<div class="proc-row">🏡 ' + farmName + ': ' + st + '</div>';
     });
     gs.banquets.forEach(b => {
         proc += '<div class="proc-row">🎉 Banquet: ' + daysRemaining(b.endDay) + ' days remaining</div>';
