@@ -212,6 +212,7 @@ body {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     border-left: 1px solid rgba(255, 215, 0, 0.15);
+    position: fixed;
 }
 
 #inventoryPanel::before {
@@ -354,6 +355,29 @@ body {
     flex-wrap: wrap;
 }
 
+.build-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.manage-btn {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    background: rgba(255, 215, 0, 0.1);
+    color: #f0e6d0;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.manage-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .inv-btn {
     padding: 8px 14px;
     background: rgba(255, 215, 0, 0.12);
@@ -384,6 +408,67 @@ body {
 
 .proc-row.faded {
     opacity: 0.45;
+}
+
+.ownership-panel {
+    position: absolute;
+    inset: 0;
+    background: rgba(12, 9, 6, 0.96);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+}
+
+.ownership-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.12);
+    color: #FFD700;
+    font-weight: bold;
+}
+
+.ownership-content {
+    padding: 14px 18px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.owned-row {
+    padding: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.owned-title {
+    color: #f0e6d0;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.owned-sub {
+    color: #c8b89a;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.owned-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.owned-select {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 215, 0, 0.22);
+    background: rgba(0, 0, 0, 0.35);
+    color: #f0e6d0;
 }
 
 /* ============================================================

@@ -68,6 +68,13 @@
             <h3 class="inv-section-title">Active Processes</h3>
             <div id="activeProcesses"></div>
         </div>
+        <div id="ownershipPanel" class="ownership-panel hidden">
+            <div class="ownership-header">
+                <span id="ownershipTitle">Owned</span>
+                <button id="closeOwnershipPanel" class="close-btn">✕</button>
+            </div>
+            <div id="ownershipContent" class="ownership-content"></div>
+        </div>
     </div>
 
     <!-- Log Panel -->
@@ -88,7 +95,7 @@
             <button id="loadGameBtn" class="menu-btn">📂 Load Game</button>
             <button id="toggleMusicBtn" class="menu-btn">🎵 Music: ON</button>
             <button id="toggleSfxBtn" class="menu-btn">🔊 SFX: ON</button>
-            <button id="hotdogBtn" class="menu-btn" disabled data-tooltip="Unlocks when you get 10 hotdog.">🌭 Hotdog (Locked)</button>
+            <button id="hotdogBtn" class="menu-btn" disabled data-tooltip="Unlocks when you get 1 hotdog.">🌭 Hotdog (Locked)</button>
         </div>
         <div id="saveLoadArea" class="hidden">
             <textarea id="saveLoadText" rows="3"></textarea>

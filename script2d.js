@@ -37,6 +37,17 @@ const MAX_VISUAL_CAMELS = 400;
 const MAX_LOG_ENTRIES = 5;
 const GAME_EPOCH = new Date(2014, 9, 24);
 const SLOW_UI_INTERVAL = 500;
+const FARM_NAME_POOL = [
+    'Ibil', 'Jamal', 'Ba’eer', 'Naqa', 'Fahl', 'Dhawd', 'Wabar', 'Rahl',
+    'Al-Hawar', 'Al-Makhlool', 'Al-Mufroud', 'Al-Faseel', 'Al-Luqai', 'Al-Haq',
+    'Al-Jathaa', 'Ath-Thinee', 'Ar-Rabaa', 'As-Sudsis', 'Al-Fatir', 'An-Nab',
+    'Al-Awd', 'Ath-Thilb'
+];
+const MINE_NAME_POOL = [
+    'Mahd adh-Dhahab', 'Ad Duwayhi Gold', 'Al Shamal', 'Bulghah', 'Al-Amar',
+    'Az-Zabirah', 'Sukari Gold', 'Ghar Djebilet', 'El Gedida', 'Wadi Al-Shati',
+    'Khor Khuwair Limestone Quarry'
+];
 
 /* ============================================================
    CANVAS / PHYSICS STATE
@@ -56,6 +67,7 @@ let backgroundMusic, camelSound;
 let audioUnlocked = false;
 let musicEnabled = true;
 let sfxEnabled = true;
+let interactionSfx = {};
 
 /* ============================================================
    GAME STATE
@@ -73,8 +85,8 @@ function freshState() {
         spawnTimer: 0,
         caravans: [],
         farms: [],
-        silverMines: 0,
-        goldMines: 0,
+        silverMines: [],
+        goldMines: [],
         mineSilverProgress: 0,
         mineGoldProgress: 0,
         banquets: [],
@@ -100,12 +112,22 @@ function freshState() {
 }
 
 function normalizeState() {
-    gs.silverMines = Number.isFinite(gs.silverMines) ? gs.silverMines : 0;
-    gs.goldMines = Number.isFinite(gs.goldMines) ? gs.goldMines : 0;
+    if (Array.isArray(gs.silverMines)) {
+        gs.silverMines = gs.silverMines;
+    } else {
+        const count = Number.isFinite(gs.silverMines) ? gs.silverMines : 0;
+        gs.silverMines = Array.from({ length: count }, () => ({ name: pickRandomName(MINE_NAME_POOL) }));
+    }
+    if (Array.isArray(gs.goldMines)) {
+        gs.goldMines = gs.goldMines;
+    } else {
+        const count = Number.isFinite(gs.goldMines) ? gs.goldMines : 0;
+        gs.goldMines = Array.from({ length: count }, () => ({ name: pickRandomName(MINE_NAME_POOL) }));
+    }
     gs.mineSilverProgress = Number.isFinite(gs.mineSilverProgress) ? gs.mineSilverProgress : 0;
     gs.mineGoldProgress = Number.isFinite(gs.mineGoldProgress) ? gs.mineGoldProgress : 0;
-    gs.mineSilverUnlocked = Boolean(gs.mineSilverUnlocked) || gs.camelCount >= SILVER_MINE_COST_CAMELS || gs.silverMines > 0;
-    gs.mineGoldUnlocked = Boolean(gs.mineGoldUnlocked) || gs.camelCount >= GOLD_MINE_COST_CAMELS || gs.goldMines > 0;
+    gs.mineSilverUnlocked = Boolean(gs.mineSilverUnlocked) || gs.camelCount >= SILVER_MINE_COST_CAMELS || gs.silverMines.length > 0;
+    gs.mineGoldUnlocked = Boolean(gs.mineGoldUnlocked) || gs.camelCount >= GOLD_MINE_COST_CAMELS || gs.goldMines.length > 0;
 
     if (!Array.isArray(gs.farms)) {
         gs.farms = [];
@@ -120,9 +142,15 @@ function normalizeState() {
         return {
             active: farm.active !== false,
             enabled: farm.enabled !== false,
-            upkeepRemainingDays
+            upkeepRemainingDays,
+            name: typeof farm.name === 'string' && farm.name ? farm.name : pickRandomName(FARM_NAME_POOL),
+            payMode: farm.payMode === 'gold' ? 'gold' : 'silver'
         };
     });
+}
+
+function pickRandomName(pool) {
+    return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /* ============================================================
@@ -143,6 +171,7 @@ let logDirty = false;
 let dom = {};
 let lastWallTime = 0;
 let logicInterval = null;
+let ownershipView = '';
 
 /* ============================================================
    INITIALIZATION
@@ -188,6 +217,10 @@ function cacheDOMRefs() {
     dom.resourceList = document.getElementById('resourceList');
     dom.buildingActions = document.getElementById('buildingActions');
     dom.activeProcesses = document.getElementById('activeProcesses');
+    dom.ownershipPanel = document.getElementById('ownershipPanel');
+    dom.ownershipTitle = document.getElementById('ownershipTitle');
+    dom.ownershipContent = document.getElementById('ownershipContent');
+    dom.closeOwnershipPanel = document.getElementById('closeOwnershipPanel');
     dom.logPanel = document.getElementById('logPanel');
     dom.menuBtn = document.getElementById('menuButton');
     dom.menuPanel = document.getElementById('menuPanel');
@@ -223,8 +256,11 @@ function setupEventListeners() {
     dom.toggleSfxBtn.addEventListener('click', toggleSfx);
     dom.hotdogBtn.addEventListener('click', openHotdogPage);
     dom.saveLoadConfirm.addEventListener('click', confirmLoad);
+    dom.closeOwnershipPanel.addEventListener('click', closeOwnershipPanel);
 
     dom.buildingActions.addEventListener('click', handleBuildingClick);
+    dom.ownershipContent.addEventListener('click', handleOwnedPanelClick);
+    dom.ownershipContent.addEventListener('change', handleOwnedPanelChange);
 
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('keydown', e => {
@@ -245,9 +281,86 @@ function handleBuildingClick(e) {
     else if (action === 'farmGold') buyFarmWithGold();
     else if (action === 'mineSilver') buildSilverMine();
     else if (action === 'mineGold') buildGoldMine();
+    else if (action === 'manageFarms') openOwnershipPanel('farms');
+    else if (action === 'manageMines') openOwnershipPanel('mines');
     else if (action === 'farmToggle') toggleFarmState(Number(btn.dataset.farmIndex));
     else if (action === 'university') buildUniversity();
     else if (action === 'convert') startConversion();
+}
+
+function openOwnershipPanel(type) {
+    ownershipView = type;
+    dom.ownershipPanel.classList.remove('hidden');
+    renderOwnershipPanel();
+}
+
+function closeOwnershipPanel() {
+    ownershipView = '';
+    dom.ownershipPanel.classList.add('hidden');
+}
+
+function renderOwnershipPanel() {
+    if (!ownershipView) return;
+
+    if (ownershipView === 'farms') {
+        dom.ownershipTitle.textContent = 'Owned Farms';
+        if (gs.farms.length === 0) {
+            dom.ownershipContent.innerHTML = '<div class="proc-row faded">No farms built yet.</div>';
+            return;
+        }
+        dom.ownershipContent.innerHTML = gs.farms.map((farm, index) => {
+            const status = farm.enabled
+                ? (farm.active ? 'ON' : 'UPKEEP FAILED')
+                : 'OFF';
+            return '<div class="owned-row">' +
+                '<div class="owned-title">🏡 ' + farm.name + '</div>' +
+                '<div class="owned-sub">Status: ' + status + ' · upkeep in ' + Math.ceil(farm.upkeepRemainingDays) + ' days</div>' +
+                '<div class="owned-controls">' +
+                '<button class="inv-btn" data-owned-action="farmToggle" data-farm-index="' + index + '">' + (farm.enabled ? 'Turn OFF' : 'Turn ON') + '</button>' +
+                '<label class="owned-sub">Pay with</label>' +
+                '<select class="owned-select" data-owned-action="farmPayMode" data-farm-index="' + index + '" ' + (farm.enabled ? '' : 'disabled') + '>' +
+                '<option value="silver"' + (farm.payMode === 'silver' ? ' selected' : '') + '>Silver</option>' +
+                '<option value="gold"' + (farm.payMode === 'gold' ? ' selected' : '') + '>Gold</option>' +
+                '</select>' +
+                '</div></div>';
+        }).join('');
+        return;
+    }
+
+    dom.ownershipTitle.textContent = 'Owned Mines';
+    const allMines = [
+        ...gs.silverMines.map(mine => ({ type: 'Silver Mine', rate: `${SILVER_MINE_SILVER_PER_DAY} silver/day`, name: mine.name })),
+        ...gs.goldMines.map(mine => ({ type: 'Gold Mine', rate: `${GOLD_MINE_GOLD_PER_DAY} gold/day`, name: mine.name }))
+    ];
+    if (allMines.length === 0) {
+        dom.ownershipContent.innerHTML = '<div class="proc-row faded">No mines built yet.</div>';
+        return;
+    }
+    dom.ownershipContent.innerHTML = allMines.map(mine =>
+        '<div class="owned-row">' +
+        '<div class="owned-title">⛏️ ' + mine.name + '</div>' +
+        '<div class="owned-sub">' + mine.type + ' · ' + mine.rate + '</div>' +
+        '</div>'
+    ).join('');
+}
+
+function handleOwnedPanelClick(e) {
+    const btn = e.target.closest('[data-owned-action]');
+    if (!btn || btn.disabled) return;
+    const action = btn.dataset.ownedAction;
+    if (action === 'farmToggle') {
+        toggleFarmState(Number(btn.dataset.farmIndex));
+        renderOwnershipPanel();
+    }
+}
+
+function handleOwnedPanelChange(e) {
+    const select = e.target.closest('[data-owned-action="farmPayMode"]');
+    if (!select) return;
+    const index = Number(select.dataset.farmIndex);
+    if (Number.isFinite(index) && gs.farms[index]) {
+        gs.farms[index].payMode = select.value === 'gold' ? 'gold' : 'silver';
+    }
 }
 
 /* ============================================================
@@ -265,6 +378,29 @@ function setupAudio() {
     camelSound = document.getElementById('camelSound');
     backgroundMusic.volume = 0.3;
     camelSound.volume = 0.7;
+    setupInteractionSfx();
+}
+
+function setupInteractionSfx() {
+    interactionSfx = {
+        caravan: new Audio('assets/sfx/carvans.mp3'),
+        farm: new Audio('assets/sfx/farms.wav'),
+        mine: new Audio('assets/sfx/mines ready.wav'),
+        banquet: new Audio('assets/sfx/partysoundd.wav'),
+        race: new Audio('assets/sfx/race.wav'),
+        shovel: new Audio('assets/sfx/shovel.mp3')
+    };
+    Object.values(interactionSfx).forEach(sound => {
+        sound.volume = 0.75;
+    });
+}
+
+function playSfx(key) {
+    if (!sfxEnabled || !interactionSfx[key]) return;
+    unlockAudio();
+    const sound = interactionSfx[key];
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
 }
 
 function unlockAudio() {
@@ -458,6 +594,7 @@ function resizeCanvas() {
    ============================================================ */
 function handleShovelClick() {
     if (shovelActive) return;
+    playSfx('shovel');
     shovelActive = true;
     groundColliderEnabled = false;
 
@@ -547,6 +684,7 @@ function updateAutoProduction(deltaSec) {
    ============================================================ */
 function handleCaravanClick() {
     if (gs.camelCount < CARAVAN_COST) return;
+    playSfx('caravan');
     gs.camelCount -= CARAVAN_COST;
 
     let duration;
@@ -617,15 +755,29 @@ function handleHuntClick() {
    ============================================================ */
 function buyFarmWithSilver() {
     if (gs.silver < FARM_COST_SILVER) return;
+    playSfx('farm');
     gs.silver -= FARM_COST_SILVER;
-    gs.farms.push({ active: true, enabled: true, upkeepRemainingDays: FARM_UPKEEP_INTERVAL });
+    gs.farms.push({
+        active: true,
+        enabled: true,
+        upkeepRemainingDays: FARM_UPKEEP_INTERVAL,
+        name: pickRandomName(FARM_NAME_POOL),
+        payMode: 'silver'
+    });
     addLog('Farm built! Worker is producing camels.');
 }
 
 function buyFarmWithGold() {
     if (gs.gold < FARM_COST_GOLD) return;
+    playSfx('farm');
     gs.gold -= FARM_COST_GOLD;
-    gs.farms.push({ active: true, enabled: true, upkeepRemainingDays: FARM_UPKEEP_INTERVAL });
+    gs.farms.push({
+        active: true,
+        enabled: true,
+        upkeepRemainingDays: FARM_UPKEEP_INTERVAL,
+        name: pickRandomName(FARM_NAME_POOL),
+        payMode: 'silver'
+    });
     addLog('Farm built! Worker is producing camels.');
 }
 
@@ -637,12 +789,12 @@ function checkFarmUpkeep(elapsedGameDays) {
 
         farm.upkeepRemainingDays -= elapsedGameDays;
         while (farm.upkeepRemainingDays <= 0) {
-            if (gs.silver >= FARM_UPKEEP_SILVER) {
+            if (farm.payMode === 'silver' && gs.silver >= FARM_UPKEEP_SILVER) {
                 gs.silver -= FARM_UPKEEP_SILVER;
                 farm.active = true;
                 farm.upkeepRemainingDays += FARM_UPKEEP_INTERVAL;
                 addLog('Farm #' + (index + 1) + ' upkeep paid (' + FARM_UPKEEP_SILVER + ' 🥈).');
-            } else if (gs.gold >= FARM_UPKEEP_GOLD) {
+            } else if (farm.payMode === 'gold' && gs.gold >= FARM_UPKEEP_GOLD) {
                 gs.gold -= FARM_UPKEEP_GOLD;
                 farm.active = true;
                 farm.upkeepRemainingDays += FARM_UPKEEP_INTERVAL;
@@ -670,21 +822,23 @@ function toggleFarmState(index) {
 
 function buildSilverMine() {
     if (gs.camelCount < SILVER_MINE_COST_CAMELS) return;
+    playSfx('mine');
     gs.camelCount -= SILVER_MINE_COST_CAMELS;
-    gs.silverMines += 1;
+    gs.silverMines.push({ name: pickRandomName(MINE_NAME_POOL) });
     addLog('Silver mine built! Produces ' + SILVER_MINE_SILVER_PER_DAY + ' silver/day.');
 }
 
 function buildGoldMine() {
     if (gs.camelCount < GOLD_MINE_COST_CAMELS) return;
+    playSfx('mine');
     gs.camelCount -= GOLD_MINE_COST_CAMELS;
-    gs.goldMines += 1;
+    gs.goldMines.push({ name: pickRandomName(MINE_NAME_POOL) });
     addLog('Gold mine built! Produces ' + GOLD_MINE_GOLD_PER_DAY + ' gold/day.');
 }
 
 function updateMineProduction(elapsedGameDays) {
-    if (gs.silverMines > 0) {
-        gs.mineSilverProgress += gs.silverMines * SILVER_MINE_SILVER_PER_DAY * elapsedGameDays;
+    if (gs.silverMines.length > 0) {
+        gs.mineSilverProgress += gs.silverMines.length * SILVER_MINE_SILVER_PER_DAY * elapsedGameDays;
         const wholeSilver = Math.floor(gs.mineSilverProgress);
         if (wholeSilver > 0) {
             gs.silver += wholeSilver;
@@ -692,8 +846,8 @@ function updateMineProduction(elapsedGameDays) {
             gs.silverEverCollected = true;
         }
     }
-    if (gs.goldMines > 0) {
-        gs.mineGoldProgress += gs.goldMines * GOLD_MINE_GOLD_PER_DAY * elapsedGameDays;
+    if (gs.goldMines.length > 0) {
+        gs.mineGoldProgress += gs.goldMines.length * GOLD_MINE_GOLD_PER_DAY * elapsedGameDays;
         const wholeGold = Math.floor(gs.mineGoldProgress);
         if (wholeGold > 0) {
             gs.gold += wholeGold;
@@ -708,6 +862,7 @@ function updateMineProduction(elapsedGameDays) {
    ============================================================ */
 function handleBanquetClick() {
     if (gs.camelCount < BANQUET_COST) return;
+    playSfx('banquet');
     gs.camelCount -= BANQUET_COST;
     gs.banquets.push({
         startDay: gs.currentGameDay,
@@ -732,6 +887,7 @@ function checkBanquetCompletions() {
    ============================================================ */
 function handleRaceClick() {
     if (gs.camelCount < RACE_COST) return;
+    playSfx('race');
     gs.camelCount -= RACE_COST;
     gs.races.push({
         startDay: gs.currentGameDay,
@@ -871,10 +1027,10 @@ function updateUI() {
     dom.hotdogBtn.disabled = !hotdogUnlocked;
     if (hotdogUnlocked) {
         dom.hotdogBtn.textContent = '🌭 Hotdog';
-        dom.hotdogBtn.dataset.tooltip = 'Open the hotdog photo feed.';
+        dom.hotdogBtn.dataset.tooltip = 'hotdog!';
     } else {
         dom.hotdogBtn.textContent = '🌭 Hotdog (Locked)';
-        dom.hotdogBtn.dataset.tooltip = 'Unlocks when you get 10 hotdog.';
+        dom.hotdogBtn.dataset.tooltip = 'Unlocks when you get 1 hotdog.';
     }
 }
 
@@ -887,7 +1043,12 @@ function updateSlowUI(timestamp) {
         logDirty = false;
     }
 
-    if (inventoryOpen) updateInventoryContent();
+    if (inventoryOpen) {
+        updateInventoryContent();
+        if (ownershipView) {
+            renderOwnershipPanel();
+        }
+    }
 }
 
 function updateLogPanel() {
@@ -906,7 +1067,11 @@ function fmtNum(n) {
 function toggleInventory() {
     inventoryOpen = !inventoryOpen;
     dom.inventoryPanel.classList.toggle('open', inventoryOpen);
-    if (inventoryOpen) updateInventoryContent();
+    if (inventoryOpen) {
+        updateInventoryContent();
+    } else {
+        closeOwnershipPanel();
+    }
 }
 
 function updateInventoryContent() {
@@ -923,7 +1088,8 @@ function updateInventoryContent() {
     let bld = '';
     if (gs.mineSilverUnlocked || gs.mineGoldUnlocked) {
         bld += '<div class="build-row">' +
-            '<span class="build-title">⛏️ Mining Grounds</span>' +
+            '<div class="build-head"><span class="build-title">⛏️ Mining Grounds</span>' +
+            '<button class="manage-btn" data-action="manageMines"' + ((gs.silverMines.length + gs.goldMines.length) === 0 ? ' disabled' : '') + '>Manage</button></div>' +
             '<div class="build-btns">';
 
         if (gs.mineSilverUnlocked) {
@@ -945,7 +1111,8 @@ function updateInventoryContent() {
 
     if (gs.farmEverAffordable) {
         bld += '<div class="build-row">' +
-            '<span class="build-title">🏡 Farm</span>' +
+            '<div class="build-head"><span class="build-title">🏡 Farm</span>' +
+            '<button class="manage-btn" data-action="manageFarms"' + (gs.farms.length === 0 ? ' disabled' : '') + '>Manage</button></div>' +
             '<div class="build-btns">' +
             '<button class="inv-btn" data-action="farmSilver"' +
             (gs.silver < FARM_COST_SILVER ? ' disabled' : '') +
@@ -956,20 +1123,6 @@ function updateInventoryContent() {
             ' data-tooltip="Buy a farm for ' + FARM_COST_GOLD + ' Gold. Produces 1 camel every 6 seconds. Worker upkeep: ' + FARM_UPKEEP_SILVER + ' Silver or ' + FARM_UPKEEP_GOLD + ' Gold every ' + FARM_UPKEEP_INTERVAL + ' days.">' +
             'Buy (' + FARM_COST_GOLD + ' 🥇)</button>' +
             '</div></div>';
-
-        gs.farms.forEach((farm, index) => {
-            const offOnLabel = farm.enabled ? 'Turn OFF' : 'Turn ON';
-            const stateText = farm.enabled
-                ? (farm.active ? 'ON' : 'UPKEEP FAILED')
-                : 'OFF (FROZEN)';
-            bld += '<div class="build-row">' +
-                '<span class="build-title">Farm #' + (index + 1) + ' — ' + stateText + ' — upkeep in ' + Math.ceil(farm.upkeepRemainingDays) + ' days</span>' +
-                '<div class="build-btns">' +
-                '<button class="inv-btn" data-action="farmToggle" data-farm-index="' + index + '"' +
-                ' data-tooltip="Turn this farm on/off. Off farms do not produce camels and upkeep timer stays frozen.">' +
-                offOnLabel + '</button>' +
-                '</div></div>';
-        });
     }
     if (gs.universityEverAffordable && !gs.universityBuilt) {
         bld += '<div class="build-row">' +
@@ -990,11 +1143,11 @@ function updateInventoryContent() {
     dom.buildingActions.innerHTML = bld;
 
     let proc = '';
-    if (gs.silverMines > 0) {
-        proc += '<div class="proc-row">⛏️ Silver Mines: ' + gs.silverMines + ' (+' + (gs.silverMines * SILVER_MINE_SILVER_PER_DAY) + ' silver/day)</div>';
+    if (gs.silverMines.length > 0) {
+        proc += '<div class="proc-row">⛏️ Silver Mines: ' + gs.silverMines.length + ' (+' + (gs.silverMines.length * SILVER_MINE_SILVER_PER_DAY) + ' silver/day)</div>';
     }
-    if (gs.goldMines > 0) {
-        proc += '<div class="proc-row">⛏️ Gold Mines: ' + gs.goldMines + ' (+' + (gs.goldMines * GOLD_MINE_GOLD_PER_DAY) + ' gold/day)</div>';
+    if (gs.goldMines.length > 0) {
+        proc += '<div class="proc-row">⛏️ Gold Mines: ' + gs.goldMines.length + ' (+' + (gs.goldMines.length * GOLD_MINE_GOLD_PER_DAY) + ' gold/day)</div>';
     }
     gs.caravans.forEach((c, i) => {
         proc += '<div class="proc-row">🏕️ Caravan #' + (i + 1) + ': returning in ' + daysRemaining(c.returnDay) + ' days</div>';
