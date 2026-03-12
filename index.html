@@ -10,27 +10,11 @@
     <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Left Panel: Action Buttons -->
+    <!-- Left Panel: Main Screen Tools -->
     <div id="leftPanel">
         <button id="shovelButton" class="icon-button hidden"
             data-tooltip="Shovel: Sweep all visible camels off the screen. They fall through the ground!">
             <img src="assets/shovel icon.png" alt="Shovel">
-        </button>
-        <button id="caravanButton" class="icon-button hidden disabled"
-            data-tooltip="Caravan: Spend 100 camels to send a trading caravan. Caravan returns in 5–11 days. Brings back silver, with a chance of gold or a rare hotdog.">
-            <img src="assets/camel caravan icon.png" alt="Caravan">
-        </button>
-        <button id="huntButton" class="icon-button hidden disabled"
-            data-tooltip="Hunt: Spend 3 silver to capture 50 wild camels.">
-            <span class="emoji-icon">🏹</span>
-        </button>
-        <button id="banquetButton" class="icon-button hidden disabled"
-            data-tooltip="Banquet: Spend 10,000 camels to host a grand feast. Takes 10 game days. Produces 4 hotdogs.">
-            <span class="emoji-icon">🎉</span>
-        </button>
-        <button id="raceButton" class="icon-button hidden disabled"
-            data-tooltip="Race: Spend 25,000 camels to enter a grand race. Takes 25 game days. Produces 1 hotdog + 3 warrior camels.">
-            <span class="emoji-icon">🏁</span>
         </button>
     </div>
 
@@ -41,15 +25,15 @@
             <span id="camelCountDisplay">0</span>
         </div>
         <button id="chestButton" class="icon-button chest-button"
-            data-tooltip="Inventory: View all resources and track active processes.">
+            data-tooltip="Management: View resources, buildings, actions, and active processes.">
             <img src="assets/chest.png" alt="Inventory Chest">
         </button>
     </div>
 
-    <!-- Inventory Slide Panel -->
+    <!-- Management Slide Panel -->
     <div id="inventoryPanel">
         <div id="inventoryHeader">
-            <span>📦 Inventory</span>
+            <span>📦 Management</span>
             <button id="closeInventory" class="close-btn">✕</button>
         </div>
         <div class="inv-section date-row">
@@ -95,7 +79,7 @@
             <button id="loadGameBtn" class="menu-btn">📂 Load Game</button>
             <button id="toggleMusicBtn" class="menu-btn">🎵 Music: ON</button>
             <button id="toggleSfxBtn" class="menu-btn">🔊 SFX: ON</button>
-            <button id="hotdogBtn" class="menu-btn" disabled data-tooltip="Unlocks when you get 1 hotdog.">🌭 Hotdog (Locked)</button>
+            <button id="hotdogBtn" class="menu-btn" disabled data-tooltip="Unlocks when you get 10 hotdog.">🌭 Hotdog (Locked)</button>
         </div>
         <div id="saveLoadArea" class="hidden">
             <textarea id="saveLoadText" rows="3"></textarea>
@@ -108,6 +92,18 @@
 
     <!-- Spawn Button -->
     <button id="spawnButton">Drop a Camel!</button>
+    <div id="smasherLayer"></div>
+
+    <!-- First Camel Audio Choice Modal -->
+    <div id="audioChoiceOverlay" class="hidden">
+        <div id="audioChoiceModal">
+            <p id="audioChoiceText">The camels roar through the silence of the desert.</p>
+            <div class="audio-choice-actions">
+                <button id="keepAudioBtn" class="menu-btn">Keep Audio</button>
+                <button id="disableAudioBtn" class="menu-btn">Disable Audio</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Audio -->
     <audio id="backgroundMusic" loop>

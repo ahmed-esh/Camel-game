@@ -202,7 +202,7 @@ body {
     position: fixed;
     top: 0;
     right: 0;
-    width: min(560px, 92vw);
+    width: 100vw;
     height: 100vh;
     z-index: 25;
     background: rgba(15, 12, 8, 0.93);
@@ -243,6 +243,12 @@ body {
     top: 0;
     background: rgba(15, 12, 8, 0.98);
     z-index: 1;
+}
+
+#inventoryPanel .inv-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .close-btn {
@@ -417,6 +423,49 @@ body {
     z-index: 5;
     display: flex;
     flex-direction: column;
+}
+
+#smasherLayer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9;
+}
+
+.smasher-camel {
+    position: absolute;
+    font-size: 24px;
+    transform: translate(-50%, -50%);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+#audioChoiceOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0, 0, 0, 0.68);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#audioChoiceModal {
+    width: min(540px, 90vw);
+    background: rgba(20, 15, 10, 0.98);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 14px;
+    padding: 22px;
+}
+
+#audioChoiceText {
+    color: #f0e6d0;
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.audio-choice-actions {
+    display: flex;
+    gap: 10px;
 }
 
 .ownership-header {
