@@ -10,9 +10,9 @@
 const SECONDS_PER_GAME_DAY = 120;
 const CAMEL_SPAWN_INTERVAL = 6;
 const CARAVAN_COST = 100;
-const FIRST_CARAVAN_DURATION = 3;
-const CARAVAN_DURATION_MIN = 5;
-const CARAVAN_DURATION_MAX = 11;
+const FIRST_CARAVAN_DURATION = 1;
+const CARAVAN_DURATION_MIN = 3;
+const CARAVAN_DURATION_MAX = 7;
 const FARM_COST_SILVER = 99;
 const FARM_COST_GOLD = 1;
 const FARM_WORKER_GRASS_PER_DAY = 100;
@@ -110,14 +110,16 @@ function freshState() {
             name: '',
             enabled: true,
             payMode: 'silver',
-            upkeepProgress: 0
+            upkeepProgress: 0,
+            assignedWorkers: 0
         },
         silverMine: {
             owned: false,
             name: '',
             upgradeLevel: 0,
             assignedCamels: 0,
-            progress: 0
+            progress: 0,
+            digEndAtMs: 0
         },
         goldMine: {
             owned: false,
@@ -145,6 +147,7 @@ function freshState() {
         princeWorkerGiftGiven: false,
         firstCaravanSent: false,
         hotdogPageUnlocked: false,
+        marketItems: [],
         silverEverCollected: false,
         goldEverCollected: false,
         grassEverCollected: false,
@@ -203,6 +206,7 @@ function normalizeState() {
     gs.farm.enabled = gs.farm.enabled !== false;
     gs.farm.payMode = gs.farm.payMode === 'gold' ? 'gold' : 'silver';
     gs.farm.upkeepProgress = Number.isFinite(gs.farm.upkeepProgress) ? gs.farm.upkeepProgress : 0;
+    gs.farm.assignedWorkers = Number.isFinite(gs.farm.assignedWorkers) ? Math.max(0, gs.farm.assignedWorkers) : 0;
 
     gs.silverMine = gs.silverMine && typeof gs.silverMine === 'object' ? gs.silverMine : { owned: false, name: '', upgradeLevel: 0, assignedCamels: 0, progress: 0 };
     gs.silverMine.owned = Boolean(gs.silverMine.owned);
@@ -210,6 +214,7 @@ function normalizeState() {
     gs.silverMine.upgradeLevel = Number.isFinite(gs.silverMine.upgradeLevel) ? Math.max(0, Math.min(2, gs.silverMine.upgradeLevel)) : 0;
     gs.silverMine.assignedCamels = Number.isFinite(gs.silverMine.assignedCamels) ? Math.max(0, gs.silverMine.assignedCamels) : 0;
     gs.silverMine.progress = Number.isFinite(gs.silverMine.progress) ? gs.silverMine.progress : 0;
+    gs.silverMine.digEndAtMs = Number.isFinite(gs.silverMine.digEndAtMs) ? gs.silverMine.digEndAtMs : 0;
 
     gs.goldMine = gs.goldMine && typeof gs.goldMine === 'object' ? gs.goldMine : { owned: false, name: '', upgradeLevel: 0, assignedCamels: 0, progress: 0 };
     gs.goldMine.owned = Boolean(gs.goldMine.owned);
@@ -226,10 +231,26 @@ function normalizeState() {
     gs.princeMineRewardGiven = Boolean(gs.princeMineRewardGiven);
     gs.princeWorkerGiftGiven = Boolean(gs.princeWorkerGiftGiven);
     gs.hotdogPageUnlocked = Boolean(gs.hotdogPageUnlocked) || gs.hotdogs >= 10;
+    if (!Array.isArray(gs.marketItems) || gs.marketItems.length === 0) {
+        gs.marketItems = createInitialMarketItems();
+    }
+    if (gs.farm.assignedWorkers > gs.workers) {
+        gs.farm.assignedWorkers = gs.workers;
+    }
 }
 
 function pickRandomName(pool) {
     return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function createInitialMarketItems() {
+    const labels = ['Salt Bundle', 'Desert Rope', 'Caravan Wheel', 'Water Skin', 'Fine Saddle', 'Spice Box'];
+    return labels.map((name, index) => ({
+        id: `market-${index}`,
+        name,
+        goldPrice: 1 + Math.floor(Math.random() * 12),
+        silverPrice: 5 + Math.floor(Math.random() * 80)
+    }));
 }
 
 function saveToLocalStorage() {
@@ -283,6 +304,10 @@ let logicInterval = null;
 let ownershipView = '';
 let autosaveInterval = null;
 let smasherVisuals = [];
+let lastManualSpawnClickMs = 0;
+let pendingSmasherHitBursts = 0;
+let activePrinceEvent = null;
+let princeMessageShown = false;
 
 /* ============================================================
    INITIALIZATION
@@ -350,6 +375,8 @@ function cacheDOMRefs() {
     dom.audioChoiceOverlay = document.getElementById('audioChoiceOverlay');
     dom.keepAudioBtn = document.getElementById('keepAudioBtn');
     dom.disableAudioBtn = document.getElementById('disableAudioBtn');
+    dom.princeEvent = document.getElementById('princeEvent');
+    dom.princeBubble = document.getElementById('princeBubble');
 }
 
 function setupEventListeners() {
@@ -370,6 +397,7 @@ function setupEventListeners() {
     dom.closeOwnershipPanel.addEventListener('click', closeOwnershipPanel);
     dom.keepAudioBtn.addEventListener('click', () => handleAudioChoice(true));
     dom.disableAudioBtn.addEventListener('click', () => handleAudioChoice(false));
+    dom.princeEvent.addEventListener('click', handlePrinceClick);
 
     dom.buildingActions.addEventListener('click', handleBuildingClick);
     dom.ownershipContent.addEventListener('click', handleOwnedPanelClick);
@@ -395,14 +423,21 @@ function handleBuildingClick(e) {
     else if (action === 'race') handleRaceClick();
     else if (action === 'buySmasher') buyButtonSmasher();
     else if (action === 'scout') launchScout();
+    else if (action === 'farmAddWorker') adjustFarmWorkers(1);
+    else if (action === 'farmRemoveWorker') adjustFarmWorkers(-1);
+    else if (action === 'farmPayToggle') gs.farm.payMode = gs.farm.payMode === 'silver' ? 'gold' : 'silver';
     else if (action === 'farmSilver') buyFarmWithSilver();
     else if (action === 'farmGold') buyFarmWithGold();
     else if (action === 'mineSilver') buildSilverMine();
     else if (action === 'mineGold') buildGoldMine();
     else if (action === 'upgradeSilverMine') upgradeSilverMine();
     else if (action === 'upgradeGoldMine') upgradeGoldMine();
-    else if (action === 'manageFarms') openOwnershipPanel('farms');
-    else if (action === 'manageMines') openOwnershipPanel('mines');
+    else if (action === 'assignSilverMinePlus') adjustMineAssignment('silver', 1);
+    else if (action === 'assignSilverMineMinus') adjustMineAssignment('silver', -1);
+    else if (action === 'assignGoldMinePlus') adjustMineAssignment('gold', 1);
+    else if (action === 'assignGoldMineMinus') adjustMineAssignment('gold', -1);
+    else if (action === 'silverMineDig') startSilverMineDig();
+    else if (action === 'marketClick') triggerMarketReaction(btn);
     else if (action === 'university') buildUniversity();
     else if (action === 'convert') startConversion();
     saveToLocalStorage();
@@ -584,6 +619,7 @@ function createCamelEntity() {
 }
 
 function handleSpawnClick() {
+    lastManualSpawnClickMs = Date.now();
     if (!gs.firstCamelAudioPromptShown) {
         gs.firstCamelAudioPromptShown = true;
         dom.audioChoiceOverlay.classList.remove('hidden');
@@ -816,12 +852,18 @@ function updateAutoProduction(deltaSec) {
         totalCamels += intervals; // Base production only
     }
 
+    const smasherCap = gs.camelCount >= 100000 ? 50 : 5;
+    const effectiveSmashers = Math.min(gs.buttonSmashers, smasherCap);
+
     // Button smashers auto-click Drop button
-    gs.buttonSmasherProgress += gs.buttonSmashers * BUTTON_SMASHER_PRESSES_PER_DAY * (deltaSec / SECONDS_PER_GAME_DAY);
+    gs.buttonSmasherProgress += effectiveSmashers * BUTTON_SMASHER_PRESSES_PER_DAY * (deltaSec / SECONDS_PER_GAME_DAY);
     const smasherPresses = Math.floor(gs.buttonSmasherProgress);
     if (smasherPresses > 0) {
         gs.buttonSmasherProgress -= smasherPresses;
         totalCamels += smasherPresses;
+        if (Date.now() - lastManualSpawnClickMs > 800) {
+            pendingSmasherHitBursts += smasherPresses;
+        }
     }
 
     if (totalCamels > 0) {
@@ -931,7 +973,7 @@ function buyFarmWithSilver() {
         gs.princeWorkerGiftGiven = true;
         gs.workers += 1;
         gs.workersEverCollected = true;
-        addLog('The prince, impressed by your ambition, gifts you a worker to help your farm.');
+        queuePrinceEvent('The prince, impressed by your ambition, gifts you a worker to help your farm.');
     }
 }
 
@@ -950,14 +992,14 @@ function buyFarmWithGold() {
         gs.princeWorkerGiftGiven = true;
         gs.workers += 1;
         gs.workersEverCollected = true;
-        addLog('The prince, impressed by your ambition, gifts you a worker to help your farm.');
+        queuePrinceEvent('The prince, impressed by your ambition, gifts you a worker to help your farm.');
     }
 }
 
 function checkFarmProduction(elapsedGameDays) {
-    if (!gs.farm.owned || !gs.farm.enabled || gs.workers <= 0) return;
+    if (!gs.farm.owned || gs.farm.assignedWorkers <= 0) return;
 
-    gs.farm.upkeepProgress += gs.workers * elapsedGameDays;
+    gs.farm.upkeepProgress += gs.farm.assignedWorkers * FARM_WORKER_SALARY_SILVER_PER_DAY * elapsedGameDays;
     const payableUnits = Math.floor(gs.farm.upkeepProgress);
 
     if (payableUnits > 0) {
@@ -978,7 +1020,7 @@ function checkFarmProduction(elapsedGameDays) {
         return;
     }
 
-    gs.grass += gs.workers * FARM_WORKER_GRASS_PER_DAY * elapsedGameDays;
+    gs.grass += gs.farm.assignedWorkers * FARM_WORKER_GRASS_PER_DAY * elapsedGameDays;
     gs.grassEverCollected = true;
 }
 
@@ -992,6 +1034,11 @@ function toggleFarmState() {
     }
 }
 
+function adjustFarmWorkers(delta) {
+    if (!gs.farm.owned) return;
+    gs.farm.assignedWorkers = Math.max(0, Math.min(gs.workers, gs.farm.assignedWorkers + delta));
+}
+
 function buildSilverMine() {
     if (gs.silverMine.owned || gs.camelCount < SILVER_MINE_COST_CAMELS) return;
     playSfx('mine');
@@ -1000,6 +1047,7 @@ function buildSilverMine() {
     gs.silverMine.name = pickRandomName(MINE_NAME_POOL);
     gs.silverMine.upgradeLevel = 0;
     gs.silverMine.assignedCamels = 0;
+    gs.silverMine.digEndAtMs = 0;
     addLog('Silver mine built! Assign camels in Mine Management.');
 }
 
@@ -1058,9 +1106,17 @@ function adjustMineAssignment(kind, delta) {
     const mine = kind === 'gold' ? gs.goldMine : gs.silverMine;
     if (!mine.owned) return;
     const capacity = kind === 'gold' ? getGoldMineCapacity() : getSilverMineCapacity();
-    const otherAssigned = kind === 'gold' ? gs.silverMine.assignedCamels : gs.goldMine.assignedCamels;
-    const maxByCamels = Math.max(0, gs.camelCount - otherAssigned);
-    mine.assignedCamels = Math.max(0, Math.min(capacity, maxByCamels, mine.assignedCamels + delta));
+    if (delta > 0) {
+        if (gs.grass <= 0) return;
+        if (mine.assignedCamels >= capacity) return;
+        if (gs.camelCount <= 0) return;
+        mine.assignedCamels += 1;
+        gs.camelCount -= 1;
+    } else if (delta < 0) {
+        if (mine.assignedCamels <= 0) return;
+        mine.assignedCamels -= 1;
+        gs.camelCount += 1;
+    }
 }
 
 function updateMineProduction(elapsedGameDays) {
@@ -1096,6 +1152,28 @@ function updateMineProduction(elapsedGameDays) {
     }
 }
 
+function startSilverMineDig() {
+    if (!gs.silverMine.owned) return;
+    if (Date.now() < gs.silverMine.digEndAtMs) return;
+    gs.silverMine.digEndAtMs = Date.now() + 15000;
+}
+
+function checkSilverMineDigCompletion() {
+    if (!gs.silverMine.owned || gs.silverMine.digEndAtMs <= 0) return;
+    if (Date.now() >= gs.silverMine.digEndAtMs) {
+        gs.silverMine.digEndAtMs = 0;
+        gs.silver += 1;
+        gs.silverEverCollected = true;
+        addLog('Silver mine DIG completed. +1 silver.');
+    }
+}
+
+function triggerMarketReaction(buttonEl) {
+    if (!buttonEl) return;
+    buttonEl.classList.add('react');
+    setTimeout(() => buttonEl.classList.remove('react'), 300);
+}
+
 function launchScout() {
     if (!gs.scoutUnlocked || gs.gold < SCOUT_COST_GOLD) return;
     gs.gold -= SCOUT_COST_GOLD;
@@ -1123,7 +1201,7 @@ function buyButtonSmasher() {
     gs.camelCount -= BUTTON_SMASHER_COST_CAMELS;
     gs.buttonSmashers += 1;
     rebuildSmasherVisuals();
-    addLog('Button Smasher hired. Auto-pressing the drop button.');
+    addLog('Button smasher deployed. Auto-pressing the drop button.');
 }
 
 /* ============================================================
@@ -1246,7 +1324,7 @@ function checkUnlocks() {
             gs.silverMine.owned = true;
             gs.silverMine.name = pickRandomName(MINE_NAME_POOL);
         }
-        addLog('You are doing great work! A prince wanted to award you a mine!');
+        queuePrinceEvent('You are doing great work! A prince wanted to award you a mine!');
     }
 
     if (!gs.farmEverAffordable && (gs.silver >= FARM_COST_SILVER || gs.gold >= FARM_COST_GOLD)) {
@@ -1280,12 +1358,43 @@ function addLog(text) {
     saveToLocalStorage();
 }
 
+function queuePrinceEvent(message) {
+    activePrinceEvent = message;
+    princeMessageShown = false;
+    dom.princeBubble.classList.add('hidden');
+    dom.princeBubble.textContent = message;
+    dom.princeEvent.classList.remove('hidden');
+    requestAnimationFrame(() => dom.princeEvent.classList.add('visible'));
+}
+
+function handlePrinceClick() {
+    if (!activePrinceEvent) return;
+    if (!princeMessageShown) {
+        princeMessageShown = true;
+        dom.princeBubble.classList.remove('hidden');
+        return;
+    }
+    dom.princeEvent.classList.remove('visible');
+    dom.princeBubble.classList.add('hidden');
+    const message = activePrinceEvent;
+    activePrinceEvent = null;
+    setTimeout(() => {
+        dom.princeEvent.classList.add('hidden');
+    }, 350);
+    addLog(message);
+}
+
 /* ============================================================
    UI UPDATES
    ============================================================ */
 function updateUI() {
     dom.camelDisplay.textContent = fmtNum(gs.camelCount);
     updateSpeedButton();
+    const smasherCap = gs.camelCount >= 100000 ? 50 : 5;
+    const desiredSmasherVisuals = Math.min(gs.buttonSmashers, smasherCap);
+    if (smasherVisuals.length !== desiredSmasherVisuals) {
+        rebuildSmasherVisuals();
+    }
 
     const productionPerSixSeconds = 1 + Math.floor(gs.buttonSmashers * BUTTON_SMASHER_PRESSES_PER_DAY * (CAMEL_SPAWN_INTERVAL / SECONDS_PER_GAME_DAY));
     dom.camelCounterIcon.dataset.tooltip =
@@ -1338,7 +1447,9 @@ function rebuildSmasherVisuals() {
     if (!dom.smasherLayer) return;
     dom.smasherLayer.innerHTML = '';
     smasherVisuals = [];
-    for (let i = 0; i < gs.buttonSmashers; i++) {
+    const smasherCap = gs.camelCount >= 100000 ? 50 : 5;
+    const visibleSmashers = Math.min(gs.buttonSmashers, smasherCap);
+    for (let i = 0; i < visibleSmashers; i++) {
         const el = document.createElement('div');
         el.className = 'smasher-camel';
         el.textContent = '🐪';
@@ -1353,12 +1464,27 @@ function updateSmasherVisuals(timestamp) {
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const baseRadius = Math.max(rect.width, rect.height) * 0.7;
+    const hitMode = pendingSmasherHitBursts > 0 && (Date.now() - lastManualSpawnClickMs > 800);
     smasherVisuals.forEach((item, index) => {
         const angle = item.phase + (timestamp / 1000) * 1.5 + index * 0.8;
         const radius = baseRadius + (index % 3) * 12;
-        item.el.style.left = `${cx + Math.cos(angle) * radius}px`;
-        item.el.style.top = `${cy + Math.sin(angle) * radius}px`;
+        if (hitMode && index === 0) {
+            item.el.style.left = `${cx}px`;
+            item.el.style.top = `${cy}px`;
+        } else {
+            item.el.style.left = `${cx + Math.cos(angle) * radius}px`;
+            item.el.style.top = `${cy + Math.sin(angle) * radius}px`;
+        }
     });
+    if (hitMode) {
+        pendingSmasherHitBursts = Math.max(0, pendingSmasherHitBursts - 1);
+        animateDropButtonPress();
+    }
+}
+
+function animateDropButtonPress() {
+    dom.spawnBtn.classList.add('smasher-press');
+    setTimeout(() => dom.spawnBtn.classList.remove('smasher-press'), 120);
 }
 
 /* ============================================================
@@ -1388,39 +1514,83 @@ function updateInventoryContent() {
     dom.resourceList.innerHTML = resHTML;
 
     let bld = '';
-    bld += '<div class="build-row"><div class="build-head"><span class="build-title">Main Actions</span></div><div class="build-btns">' +
-        '<button class="inv-btn" data-action="caravan"' + ((gs.camelCount < CARAVAN_COST || !gs.caravanUnlocked) ? ' disabled' : '') + '>Caravan (' + CARAVAN_COST + ' 🐪)</button>' +
-        '<button class="inv-btn" data-action="hunt"' + ((gs.silver < HUNT_COST_SILVER || !gs.huntUnlocked) ? ' disabled' : '') + '>Hunt (' + HUNT_COST_SILVER + ' 🥈)</button>' +
-        '<button class="inv-btn" data-action="banquet"' + ((gs.camelCount < BANQUET_COST || !gs.banquetEverAffordable) ? ' disabled' : '') + '>Banquet</button>' +
-        '<button class="inv-btn" data-action="race"' + ((gs.camelCount < RACE_COST || !gs.raceEverAffordable) ? ' disabled' : '') + '>Race</button>' +
-        '<button class="inv-btn" data-action="buySmasher"' + (gs.camelCount < BUTTON_SMASHER_COST_CAMELS ? ' disabled' : '') + '>Button Smasher (' + BUTTON_SMASHER_COST_CAMELS + ' 🐪)</button>' +
+    const actionButtons = [];
+    if (gs.caravanUnlocked) {
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="caravan"' + (gs.camelCount < CARAVAN_COST ? ' disabled' : '') + ' data-tooltip="Send a caravan for rewards. Cost: ' + CARAVAN_COST + ' camels.">🏕️</button>');
+    }
+    if (gs.huntUnlocked) {
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="hunt"' + (gs.silver < HUNT_COST_SILVER ? ' disabled' : '') + ' data-tooltip="Hunt wild camels. Cost: ' + HUNT_COST_SILVER + ' silver.">🏹</button>');
+    }
+    if (gs.camelCount >= BUTTON_SMASHER_COST_CAMELS || gs.buttonSmashers > 0) {
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="buySmasher"' + (gs.camelCount < BUTTON_SMASHER_COST_CAMELS ? ' disabled' : '') + ' data-tooltip="Deploy a button smasher. Cost: ' + BUTTON_SMASHER_COST_CAMELS + ' camels.">🐪</button>');
+    }
+    if (gs.scoutUnlocked) {
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="scout"' + (gs.gold < SCOUT_COST_GOLD ? ' disabled' : '') + ' data-tooltip="Scout for workers. Cost: ' + SCOUT_COST_GOLD + ' gold.">🧭</button>');
+    }
+    if (gs.banquetEverAffordable) {
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="banquet"' + (gs.camelCount < BANQUET_COST ? ' disabled' : '') + ' data-tooltip="Host a banquet. Cost: ' + BANQUET_COST + ' camels.">🎉</button>');
+    }
+    if (gs.raceEverAffordable) {
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="race"' + (gs.camelCount < RACE_COST ? ' disabled' : '') + ' data-tooltip="Start a race. Cost: ' + RACE_COST + ' camels.">🏁</button>');
+    }
+    bld += '<div class="build-row"><div class="build-head"><span class="build-title">Actions</span></div><div class="build-btns">' +
+        (actionButtons.length > 0 ? actionButtons.join('') : '<div class="proc-row faded">Nothing to do here yet.</div>') +
         '</div></div>';
 
     if (gs.mineSilverUnlocked || gs.mineGoldUnlocked) {
         bld += '<div class="build-row">' +
-            '<div class="build-head"><span class="build-title">⛏️ Mining Grounds</span>' +
-            '<button class="manage-btn" data-action="manageMines"' + ((!gs.silverMine.owned && !gs.goldMine.owned) ? ' disabled' : '') + '>Manage</button></div>' +
+            '<div class="build-head"><span class="build-title">⛏️ Mining Grounds</span></div>' +
             '<div class="build-btns">';
 
         if (gs.mineSilverUnlocked) {
-            bld += '<button class="inv-btn" data-action="mineSilver"' +
-                (gs.camelCount < SILVER_MINE_COST_CAMELS || gs.silverMine.owned ? ' disabled' : '') +
-                ' data-tooltip="Build a silver mine for ' + SILVER_MINE_COST_CAMELS + ' camels. 5 camels -> 1 silver/day.">' +
-                (gs.silverMine.owned ? 'Silver Mine Built' : 'Silver Mine (' + SILVER_MINE_COST_CAMELS + ' 🐪)') + '</button>';
+            if (!gs.silverMine.owned) {
+                bld += '<button class="inv-btn" data-action="mineSilver"' +
+                    (gs.camelCount < SILVER_MINE_COST_CAMELS ? ' disabled' : '') +
+                    ' data-tooltip="Build a silver mine for ' + SILVER_MINE_COST_CAMELS + ' camels. 5 camels -> 1 silver/day.">' +
+                    'Silver Mine (' + SILVER_MINE_COST_CAMELS + ' 🐪)</button>';
+            }
             if (gs.silverMine.owned && gs.silverMine.upgradeLevel < 2) {
                 const cost = gs.silverMine.upgradeLevel === 0 ? SILVER_MINE_UPGRADE_ONE_COST : SILVER_MINE_UPGRADE_TWO_COST;
                 bld += '<button class="inv-btn" data-action="upgradeSilverMine"' + (gs.camelCount < cost ? ' disabled' : '') + '>Upgrade Silver Mine (' + cost + ' 🐪)</button>';
             }
+            if (gs.silverMine.owned) {
+                const digActive = gs.silverMine.digEndAtMs > Date.now();
+                const digRemaining = Math.max(0, gs.silverMine.digEndAtMs - Date.now());
+                const digPct = digActive ? (1 - (digRemaining / 15000)) * 100 : 0;
+                bld += '<div class="owned-row" style="width:100%">' +
+                    '<div class="owned-title">⛏️ ' + gs.silverMine.name + '</div>' +
+                    '<div class="owned-sub">Assigned camels: ' + gs.silverMine.assignedCamels + '/' + getSilverMineCapacity() + '</div>' +
+                    '<div class="owned-controls">' +
+                    '<button class="inv-btn" data-action="assignSilverMineMinus">- Camel</button>' +
+                    '<button class="inv-btn" data-action="assignSilverMinePlus"' + (gs.grass <= 0 ? ' disabled' : '') + '>+ Camel</button>' +
+                    '<button class="inv-btn" data-action="silverMineDig"' + (digActive ? ' disabled' : '') + ' style="' + (digActive ? ('background: linear-gradient(90deg, rgba(255,215,0,0.28) ' + digPct + '%, rgba(255,215,0,0.06) ' + digPct + '%);') : '') + '">' + (digActive ? 'DIGGING...' : 'DIG') + '</button>' +
+                    '</div>' +
+                    (gs.grass <= 0 ? '<div class="proc-row">You have no grass for the camels to mine.</div>' : '') +
+                    '</div>';
+            }
         }
 
         if (gs.mineGoldUnlocked) {
-            bld += '<button class="inv-btn" data-action="mineGold"' +
-                (gs.camelCount < GOLD_MINE_COST_CAMELS || gs.goldMine.owned ? ' disabled' : '') +
-                ' data-tooltip="Build a gold mine for ' + GOLD_MINE_COST_CAMELS + ' camels. 1 camel -> 1 gold/10 days.">' +
-                (gs.goldMine.owned ? 'Gold Mine Built' : 'Gold Mine (' + GOLD_MINE_COST_CAMELS + ' 🐪)') + '</button>';
+            if (!gs.goldMine.owned) {
+                bld += '<button class="inv-btn" data-action="mineGold"' +
+                    (gs.camelCount < GOLD_MINE_COST_CAMELS ? ' disabled' : '') +
+                    ' data-tooltip="Build a gold mine for ' + GOLD_MINE_COST_CAMELS + ' camels. 1 camel -> 1 gold/10 days.">' +
+                    'Gold Mine (' + GOLD_MINE_COST_CAMELS + ' 🐪)</button>';
+            }
             if (gs.goldMine.owned && gs.goldMine.upgradeLevel < 2) {
                 const cost = gs.goldMine.upgradeLevel === 0 ? GOLD_MINE_UPGRADE_ONE_COST : GOLD_MINE_UPGRADE_TWO_COST;
                 bld += '<button class="inv-btn" data-action="upgradeGoldMine"' + (gs.camelCount < cost ? ' disabled' : '') + '>Upgrade Gold Mine (' + cost + ' 🐪)</button>';
+            }
+            if (gs.goldMine.owned) {
+                bld += '<div class="owned-row" style="width:100%">' +
+                    '<div class="owned-title">⛏️ ' + gs.goldMine.name + '</div>' +
+                    '<div class="owned-sub">Assigned camels: ' + gs.goldMine.assignedCamels + '/' + getGoldMineCapacity() + '</div>' +
+                    '<div class="owned-controls">' +
+                    '<button class="inv-btn" data-action="assignGoldMineMinus">- Camel</button>' +
+                    '<button class="inv-btn" data-action="assignGoldMinePlus"' + (gs.grass <= 0 ? ' disabled' : '') + '>+ Camel</button>' +
+                    '</div>' +
+                    (gs.grass <= 0 ? '<div class="proc-row">You have no grass for the camels to mine.</div>' : '') +
+                    '</div>';
             }
         }
 
@@ -1429,24 +1599,45 @@ function updateInventoryContent() {
 
     if (gs.farmEverAffordable) {
         bld += '<div class="build-row">' +
-            '<div class="build-head"><span class="build-title">🏡 Farms</span>' +
-            '<button class="manage-btn" data-action="manageFarms"' + (!gs.farm.owned ? ' disabled' : '') + '>Manage</button></div>' +
+            '<div class="build-head"><span class="build-title">🏡 Farm</span></div>' +
             '<div class="build-btns">' +
-            '<button class="inv-btn" data-action="farmSilver"' +
-            (gs.silver < FARM_COST_SILVER || gs.farm.owned ? ' disabled' : '') +
-            ' data-tooltip="Buy the only farm for ' + FARM_COST_SILVER + ' Silver. Farm workers produce grass.">' +
-            (gs.farm.owned ? 'Farm Built' : 'Buy (' + FARM_COST_SILVER + ' 🥈)') + '</button>' +
-            '<button class="inv-btn" data-action="farmGold"' +
-            (gs.gold < FARM_COST_GOLD || gs.farm.owned ? ' disabled' : '') +
-            ' data-tooltip="Buy the only farm for ' + FARM_COST_GOLD + ' Gold. Farm workers produce grass.">' +
-            (gs.farm.owned ? 'Farm Built' : 'Buy (' + FARM_COST_GOLD + ' 🥇)') + '</button>' +
+            (!gs.farm.owned
+                ? ('<button class="inv-btn" data-action="farmSilver"' +
+                    (gs.silver < FARM_COST_SILVER ? ' disabled' : '') +
+                    ' data-tooltip="Buy the only farm for ' + FARM_COST_SILVER + ' Silver. Farm workers produce grass.">' +
+                    'Buy (' + FARM_COST_SILVER + ' 🥈)</button>' +
+                    '<button class="inv-btn" data-action="farmGold"' +
+                    (gs.gold < FARM_COST_GOLD ? ' disabled' : '') +
+                    ' data-tooltip="Buy the only farm for ' + FARM_COST_GOLD + ' Gold. Farm workers produce grass.">' +
+                    'Buy (' + FARM_COST_GOLD + ' 🥇)</button>')
+                : '') +
             '</div></div>';
+        if (gs.farm.owned) {
+            bld += '<div class="build-row"><div class="owned-row">' +
+                '<div class="owned-title">🏡 ' + gs.farm.name + '</div>' +
+                '<div class="owned-sub">Assigned workers: ' + gs.farm.assignedWorkers + ' / Total workers: ' + gs.workers + ' · +' + (gs.farm.assignedWorkers * FARM_WORKER_GRASS_PER_DAY) + ' grass/day</div>' +
+                '<div class="owned-controls">' +
+                '<button class="inv-btn" data-action="farmRemoveWorker"' + (gs.farm.assignedWorkers <= 0 ? ' disabled' : '') + '>Remove Worker</button>' +
+                '<button class="inv-btn" data-action="farmAddWorker"' + (gs.farm.assignedWorkers >= gs.workers ? ' disabled' : '') + '>Add Worker</button>' +
+                '<span class="owned-sub no-margin">Pay with</span>' +
+                '<button class="pay-switch" data-action="farmPayToggle">' +
+                '<span class="pay-option' + (gs.farm.payMode === 'silver' ? ' active' : '') + '">Silver</span>' +
+                '<span class="pay-option' + (gs.farm.payMode === 'gold' ? ' active' : '') + '">Gold</span>' +
+                '</button>' +
+                '</div>' +
+                '</div></div>';
+        }
     }
-    if (gs.scoutUnlocked) {
-        bld += '<div class="build-row"><div class="build-head"><span class="build-title">🧭 Scout</span></div><div class="build-btns">' +
-            '<button class="inv-btn" data-action="scout"' + (gs.gold < SCOUT_COST_GOLD ? ' disabled' : '') + '>Scout (' + SCOUT_COST_GOLD + ' 🥇)</button>' +
-            '</div></div>';
-    }
+
+    bld += '<div class="build-row"><div class="build-head"><span class="build-title">🛒 Market</span></div>' +
+        '<div class="market-grid">' +
+        gs.marketItems.map(item =>
+            '<button class="market-item" data-action="marketClick" data-market-id="' + item.id + '">' +
+            '<div>' + item.name + '</div>' +
+            '<div class="small">🥇 ' + item.goldPrice + ' · 🥈 ' + item.silverPrice + '</div>' +
+            '</button>'
+        ).join('') +
+        '</div></div>';
     if (gs.universityEverAffordable && !gs.universityBuilt) {
         bld += '<div class="build-row">' +
             '<span class="build-title">🎓 University</span>' +
@@ -1478,8 +1669,7 @@ function updateInventoryContent() {
         proc += '<div class="proc-row">🏕️ Caravan #' + (i + 1) + ': returning in ' + daysRemaining(c.returnDay) + ' days</div>';
     });
     if (gs.farm.owned) {
-        const farmSt = gs.farm.enabled ? 'ON' : 'OFF';
-        proc += '<div class="proc-row">🏡 ' + gs.farm.name + ': ' + farmSt + ' · workers ' + gs.workers + ' · +' + (gs.workers * FARM_WORKER_GRASS_PER_DAY) + ' grass/day · pay with ' + gs.farm.payMode + '</div>';
+        proc += '<div class="proc-row">🏡 ' + gs.farm.name + ': workers ' + gs.farm.assignedWorkers + '/' + gs.workers + ' · +' + (gs.farm.assignedWorkers * FARM_WORKER_GRASS_PER_DAY) + ' grass/day · pay with ' + gs.farm.payMode + '</div>';
     }
     gs.scouts.forEach((scout, i) => {
         proc += '<div class="proc-row">🧭 Scout #' + (i + 1) + ': returning in ' + daysRemaining(scout.returnDay) + ' days</div>';
@@ -1699,6 +1889,7 @@ function backgroundLogicTick() {
     const elapsedGameDays = gs.currentGameDay - previousDay;
     updateAutoProduction(simulationDeltaSec);
     updateMineProduction(elapsedGameDays);
+    checkSilverMineDigCompletion();
 
     checkCaravanCompletions();
     checkBanquetCompletions();

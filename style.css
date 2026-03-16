@@ -195,6 +195,11 @@ body {
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
 
+#spawnButton.smasher-press {
+    transform: translate(-50%, -50%) scale(0.95);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
 /* ============================================================
    INVENTORY PANEL
    ============================================================ */
@@ -466,6 +471,80 @@ body {
 .audio-choice-actions {
     display: flex;
     gap: 10px;
+}
+
+#princeEvent {
+    position: fixed;
+    left: 16px;
+    bottom: -240px;
+    z-index: 40;
+    transition: bottom 0.35s ease;
+    cursor: pointer;
+}
+
+#princeEvent.visible {
+    bottom: 16px;
+}
+
+#princeImage {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+}
+
+#princeBubble {
+    position: absolute;
+    left: 128px;
+    bottom: 76px;
+    min-width: 260px;
+    max-width: 360px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(15, 12, 8, 0.95);
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    color: #f0e6d0;
+    font-size: 14px;
+}
+
+.action-emoji-btn {
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 8px;
+}
+
+.market-item {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+    color: #f0e6d0;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.market-item:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 215, 0, 0.08);
+}
+
+.market-item.react {
+    animation: marketPulse 0.3s ease;
+}
+
+@keyframes marketPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
 }
 
 .ownership-header {
