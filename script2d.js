@@ -60,15 +60,15 @@ const PRINCE_MARKET_INTRO_CAMELS = 10000;
 const MINE_STAGE2_CAMELS = 3000;
 const MINE_STAGE3_CAMELS = 12000;
 const FARM_NAME_POOL = [
-    'Ibil', 'Jamal', 'Ba’eer', 'Naqa', 'Fahl', 'Dhawd', 'Wabar', 'Rahl',
-    'Al-Hawar', 'Al-Makhlool', 'Al-Mufroud', 'Al-Faseel', 'Al-Luqai', 'Al-Haq',
-    'Al-Jathaa', 'Ath-Thinee', 'Ar-Rabaa', 'As-Sudsis', 'Al-Fatir', 'An-Nab',
-    'Al-Awd', 'Ath-Thilb'
+    'Ibil Farm', 'Jamal Farm', 'Ba’eer Farm', 'Naqa Farm', 'Fahl Farm', 'Dhawd Farm', 'Wabar Farm', 'Rahl Farm',
+    'Al-Hawar Farm', 'Al-Makhlool Farm', 'Al-Mufroud Farm', 'Al-Faseel Farm', 'Al-Luqai Farm', 'Al-Haq Farm',
+    'Al-Jathaa Farm', 'Ath-Thinee Farm', 'Ar-Rabaa Farm', 'As-Sudsis Farm', 'Al-Fatir Farm', 'An-Nab Farm',
+    'Al-Awd Farm', 'Ath-Thilb Farm'
 ];
 const MINE_NAME_POOL = [
-    'Mahd adh-Dhahab', 'Ad Duwayhi Gold', 'Al Shamal', 'Bulghah', 'Al-Amar',
-    'Az-Zabirah', 'Sukari Gold', 'Ghar Djebilet', 'El Gedida', 'Wadi Al-Shati',
-    'Khor Khuwair Limestone Quarry'
+    'Mahd adh-Dhahab Mine', 'Ad Duwayhi Gold Mine', 'Al Shamal Mine', 'Bulghah Mine', 'Al-Amar Mine',
+    'Az-Zabirah Mine', 'Sukari Gold Mine', 'Ghar Djebilet Mine', 'El Gedida Mine', 'Wadi Al-Shati Mine',
+    'Khor Khuwair Mine'
 ];
 
 /* ============================================================
@@ -1698,21 +1698,20 @@ function updateInventoryContent() {
     }
 
     if (gs.farmEverAffordable) {
-        bld += '<div class="build-row">' +
-            '<div class="build-head"><span class="build-title">🏡 Farm</span></div>' +
-            '<div class="build-btns">' +
-            (!gs.farm.owned
-                ? ('<button class="inv-btn" data-action="farmSilver"' +
-                    (gs.silver < FARM_COST_SILVER ? ' disabled' : '') +
-                    ' data-tooltip="Buy the only farm for ' + FARM_COST_SILVER + ' Silver. Farm workers produce grass.">' +
-                    'Buy (' + FARM_COST_SILVER + ' 🥈)</button>' +
-                    '<button class="inv-btn" data-action="farmGold"' +
-                    (gs.gold < FARM_COST_GOLD ? ' disabled' : '') +
-                    ' data-tooltip="Buy the only farm for ' + FARM_COST_GOLD + ' Gold. Farm workers produce grass.">' +
-                    'Buy (' + FARM_COST_GOLD + ' 🥇)</button>')
-                : '') +
-            '</div></div>';
-        if (gs.farm.owned) {
+        if (!gs.farm.owned) {
+            bld += '<div class="build-row">' +
+                '<div class="build-head"><span class="build-title">🏡 Farm</span></div>' +
+                '<div class="build-btns">' +
+                '<button class="inv-btn" data-action="farmSilver"' +
+                (gs.silver < FARM_COST_SILVER ? ' disabled' : '') +
+                ' data-tooltip="Buy the only farm for ' + FARM_COST_SILVER + ' Silver. Farm workers produce grass.">' +
+                'Buy (' + FARM_COST_SILVER + ' 🥈)</button>' +
+                '<button class="inv-btn" data-action="farmGold"' +
+                (gs.gold < FARM_COST_GOLD ? ' disabled' : '') +
+                ' data-tooltip="Buy the only farm for ' + FARM_COST_GOLD + ' Gold. Farm workers produce grass.">' +
+                'Buy (' + FARM_COST_GOLD + ' 🥇)</button>' +
+                '</div></div>';
+        } else {
             bld += '<div class="build-row"><div class="owned-row">' +
                 '<div class="owned-title">🏡 ' + gs.farm.name + '</div>' +
                 '<div class="owned-sub">Assigned workers: ' + gs.farm.assignedWorkers + ' / Total workers: ' + gs.workers + ' · Grass: +' + (gs.farm.assignedWorkers * FARM_WORKER_GRASS_PER_DAY) + '/day (Cost: ' + (gs.farm.assignedWorkers * FARM_WORKER_SALARY_SILVER_PER_DAY) + ' ' + gs.farm.payMode + '/day)</div>' +

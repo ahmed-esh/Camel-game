@@ -485,7 +485,7 @@ body {
 
 #princeEvent {
     position: fixed;
-    left: 44px;
+    left: 48px;
     bottom: -240px;
     z-index: 40;
     transition: bottom 0.35s ease;
