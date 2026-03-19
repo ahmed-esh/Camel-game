@@ -1326,14 +1326,14 @@ function checkUnlocks() {
     // Prince guide intro
     if (!gs.princeGuideIntroShown && gs.manualDrops >= PRINCE_GUIDE_INTRO_CAMELS) {
         gs.princeGuideIntroShown = true;
-        queuePrinceEvent('I am the prince of these sands, your guide. In my kingdom we honor camel care above all.');
+        queuePrinceEvent('I am the prince of these sands. In my kingdom we honor camel care above all. keep working hard and you will be rewarded.');
     }
 
     // Prince unlocks Management
     if (!gs.princeManagementIntroShown && gs.camelCount >= PRINCE_MANAGEMENT_INTRO_CAMELS) {
         gs.princeManagementIntroShown = true;
         gs.managementUnlocked = true;
-        queuePrinceEvent('You are ready. Open the Management page to guide your growing camel kingdom.');
+        queuePrinceEvent('More camels yeeees! Open the Management page to guide your growing camel kingdom.');
     }
 
     // Prince introduces button smashers
@@ -1399,7 +1399,7 @@ function checkUnlocks() {
             gs.silverMine.owned = true;
             gs.silverMine.name = pickRandomName(MINE_NAME_POOL);
         }
-        queuePrinceEvent('You are doing great work! A prince wanted to award you a mine!');
+        queuePrinceEvent('You are doing great work! I wanted to award you a silver mine! get to digging!');
     }
 
     if (!gs.farmEverAffordable && (gs.silver >= FARM_COST_SILVER || gs.gold >= FARM_COST_GOLD)) {
@@ -1423,7 +1423,7 @@ function checkUnlocks() {
     if (!gs.universityEverAffordable && gs.gold >= UNIVERSITY_COST_GOLD) {
         gs.universityEverAffordable = true;
         playSfx('unlock');
-        addLog('🎓 University available! Check the inventory.');
+        addLog('🎓 University available! Check the management page.');
     }
 }
 
@@ -1604,22 +1604,22 @@ function updateInventoryContent() {
     let bld = '';
     const actionButtons = [];
     if (gs.caravanUnlocked) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="caravan"' + (gs.camelCount < CARAVAN_COST ? ' disabled' : '') + ' data-tooltip="Send a caravan for rewards. Cost: ' + CARAVAN_COST + ' camels.">🏕️</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="caravan"' + (gs.camelCount < CARAVAN_COST ? ' disabled' : '') + ' data-tooltip="Send a caravan for rewards. Cost: ' + CARAVAN_COST + ' camels. Reward: ' + CARAVAN_REWARD_CAMELS + ' ">🏕️</button>');
     }
     if (gs.huntUnlocked) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="hunt"' + (gs.silver < HUNT_COST_SILVER ? ' disabled' : '') + ' data-tooltip="Hunt wild camels. Cost: ' + HUNT_COST_SILVER + ' silver.">🏹</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="hunt"' + (gs.silver < HUNT_COST_SILVER ? ' disabled' : '') + ' data-tooltip="Hunt wild camels. Cost: ' + HUNT_COST_SILVER + ' silver. Reward: ' + HUNT_REWARD_CAMELS + ' camels.">🏹</button>');
     }
     if (gs.smasherUnlocked || gs.buttonSmashers > 0) {
         actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="buySmasher"' + (gs.camelCount < BUTTON_SMASHER_COST_CAMELS ? ' disabled' : '') + ' data-tooltip="They press the button for you. Cost: ' + BUTTON_SMASHER_COST_CAMELS + ' camels.">🐪</button>');
     }
     if (gs.scoutUnlocked) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="scout"' + (gs.gold < SCOUT_COST_GOLD ? ' disabled' : '') + ' data-tooltip="Scout for workers. Cost: ' + SCOUT_COST_GOLD + ' gold.">🧭</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="scout"' + (gs.gold < SCOUT_COST_GOLD ? ' disabled' : '') + ' data-tooltip="Scout for workers. Cost: ' + SCOUT_COST_GOLD + ' gold. Reward: ' + SCOUT_REWARD_WORKERS + ' workers.">🧭</button>');
     }
     if (gs.banquetEverAffordable) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="banquet"' + (gs.camelCount < BANQUET_COST ? ' disabled' : '') + ' data-tooltip="Host a banquet. Cost: ' + BANQUET_COST + ' camels.">🎉</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="banquet"' + (gs.camelCount < BANQUET_COST ? ' disabled' : '') + ' data-tooltip="Host a banquet. Cost: ' + BANQUET_COST + ' camels. Reward: ' + BANQUET_REWARD_HOTDOGS + ' hotdogs.">🎉</button>');
     }
     if (gs.raceEverAffordable) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="race"' + (gs.camelCount < RACE_COST ? ' disabled' : '') + ' data-tooltip="Start a race. Cost: ' + RACE_COST + ' camels.">🏁</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="race"' + (gs.camelCount < RACE_COST ? ' disabled' : '') + ' data-tooltip="Start a race. Cost: ' + RACE_COST + ' camels. Reward: ' + RACE_REWARD_HOTDOGS + ' hotdogs + ' + RACE_REWARD_WARRIORS + ' warriors.">🏁</button>');
     }
     bld += '<div class="build-row"><div class="build-head"><span class="build-title">Actions</span></div><div class="build-btns">' +
         (actionButtons.length > 0 ? actionButtons.join('') : '<div class="proc-row faded">Nothing to do here yet.</div>') +
