@@ -414,11 +414,6 @@ body {
     background: rgba(255, 215, 0, 0.25);
 }
 
-.action-flash {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 0 20px rgba(255, 255, 255, 0.45);
-    background: rgba(255, 255, 255, 0.28) !important;
-}
-
 .inv-btn:disabled {
     opacity: 0.35;
     cursor: not-allowed;
@@ -491,26 +486,14 @@ body {
 #princeEvent {
     position: fixed;
     left: 16px;
-    bottom: -280px;
+    bottom: -240px;
     z-index: 40;
     transition: bottom 0.35s ease;
     cursor: pointer;
 }
 
 #princeEvent.visible {
-    bottom: 44px;
-}
-
-#princeEvent::before {
-    content: "";
-    position: absolute;
-    width: 140px;
-    height: 140px;
-    left: -8px;
-    top: -8px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.28) 0%, rgba(255, 215, 0, 0.0) 70%);
-    z-index: -1;
+    bottom: 72px;
 }
 
 #princeImage {
@@ -566,6 +549,16 @@ body {
 
 .market-item.react {
     animation: marketPulse 0.3s ease;
+}
+
+.action-flash {
+    animation: actionFlash 0.14s linear;
+}
+
+@keyframes actionFlash {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(2.2); }
+    100% { filter: brightness(1); }
 }
 
 @keyframes marketPulse {
@@ -924,7 +917,7 @@ body {
     .owned-sub {
         font-size: 12px;
     }
-    
+
     #spawnButton {
         font-size: 18px;
         padding: 15px 30px;
