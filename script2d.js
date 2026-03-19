@@ -1667,7 +1667,7 @@ function updateInventoryContent() {
                     ' data-tooltip="Build a silver mine for ' + SILVER_MINE_COST_CAMELS + ' camels. 5 camels -> 1 silver/day.">' +
                     'Silver Mine (' + SILVER_MINE_COST_CAMELS + ' 🐪)</button>';
             }
-            if (gs.silverMine.owned && gs.camelCount >= MINE_STAGE2_CAMELS && gs.silverMine.upgradeLevel < 2) {
+            if (gs.silverMine.owned && gs.silverMine.upgradeLevel < 2) {
                 const cost = gs.silverMine.upgradeLevel === 0 ? SILVER_MINE_UPGRADE_ONE_COST : SILVER_MINE_UPGRADE_TWO_COST;
                 const upgradeReady = gs.mineUpgradeUnlocked && gs.camelCount >= cost;
                 const upgradeTip = gs.mineUpgradeUnlocked ? ('Upgrade mine with ' + cost + ' camels.') : 'upgrade not available yet';
@@ -1703,7 +1703,7 @@ function updateInventoryContent() {
                     ' data-tooltip="Build a gold mine for ' + GOLD_MINE_COST_CAMELS + ' camels. 1 camel -> 1 gold/10 days.">' +
                     'Gold Mine (' + GOLD_MINE_COST_CAMELS + ' 🐪)</button>';
             }
-            if (gs.goldMine.owned && gs.camelCount >= MINE_STAGE2_CAMELS && gs.goldMine.upgradeLevel < 2) {
+            if (gs.goldMine.owned && gs.goldMine.upgradeLevel < 2) {
                 const cost = gs.goldMine.upgradeLevel === 0 ? GOLD_MINE_UPGRADE_ONE_COST : GOLD_MINE_UPGRADE_TWO_COST;
                 const upgradeReady = gs.mineUpgradeUnlocked && gs.camelCount >= cost;
                 const upgradeTip = gs.mineUpgradeUnlocked ? ('Upgrade mine with ' + cost + ' camels.') : 'upgrade not available yet';
