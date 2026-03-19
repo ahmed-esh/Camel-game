@@ -1478,7 +1478,7 @@ function updateUI() {
 
     const productionPerSixSeconds = 1 + Math.floor(gs.buttonSmashers * BUTTON_SMASHER_PRESSES_PER_DAY * (CAMEL_SPAWN_INTERVAL / SECONDS_PER_GAME_DAY));
     dom.camelCounterIcon.dataset.tooltip =
-        `Camel production: ${productionPerSixSeconds} camel(s) every 6 real seconds (base + button smashers).`;
+        `Camel production: The game auto-generates a camel every 6 seconds. Generate more by pressing`;
 
     dom.shovelBtn.classList.toggle('hidden', !gs.shovelUnlocked);
     dom.chestBtn.classList.toggle('hidden', !gs.managementUnlocked);
@@ -1604,7 +1604,7 @@ function updateInventoryContent() {
     let bld = '';
     const actionButtons = [];
     if (gs.caravanUnlocked) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="caravan"' + (gs.camelCount < CARAVAN_COST ? ' disabled' : '') + ' data-tooltip="Send a caravan for rewards. Cost: ' + CARAVAN_COST + ' camels. Reward: ' + CARAVAN_REWARD_CAMELS + ' ">🏕️</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="caravan"' + (gs.camelCount < CARAVAN_COST ? ' disabled' : '') + ' data-tooltip="Send a caravan for rewards. Cost: ' + CARAVAN_COST + ' camels. Reward: silver, and sometimes gold or hotdog.">🏕️</button>');
     }
     if (gs.huntUnlocked) {
         actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="hunt"' + (gs.silver < HUNT_COST_SILVER ? ' disabled' : '') + ' data-tooltip="Hunt wild camels. Cost: ' + HUNT_COST_SILVER + ' silver. Reward: ' + HUNT_REWARD_CAMELS + ' camels.">🏹</button>');
@@ -1613,7 +1613,7 @@ function updateInventoryContent() {
         actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="buySmasher"' + (gs.camelCount < BUTTON_SMASHER_COST_CAMELS ? ' disabled' : '') + ' data-tooltip="They press the button for you. Cost: ' + BUTTON_SMASHER_COST_CAMELS + ' camels.">🐪</button>');
     }
     if (gs.scoutUnlocked) {
-        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="scout"' + (gs.gold < SCOUT_COST_GOLD ? ' disabled' : '') + ' data-tooltip="Scout for workers. Cost: ' + SCOUT_COST_GOLD + ' gold. Reward: ' + SCOUT_REWARD_WORKERS + ' workers.">🧭</button>');
+        actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="scout"' + (gs.gold < SCOUT_COST_GOLD ? ' disabled' : '') + ' data-tooltip="Scout for workers. Cost: ' + SCOUT_COST_GOLD + ' gold. Reward: 1-3 workers.">🧭</button>');
     }
     if (gs.banquetEverAffordable) {
         actionButtons.push('<button class="inv-btn action-emoji-btn" data-action="banquet"' + (gs.camelCount < BANQUET_COST ? ' disabled' : '') + ' data-tooltip="Host a banquet. Cost: ' + BANQUET_COST + ' camels. Reward: ' + BANQUET_REWARD_HOTDOGS + ' hotdogs.">🎉</button>');
