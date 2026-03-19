@@ -239,7 +239,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 18px 28px;
     border-bottom: 1px solid rgba(255, 215, 0, 0.15);
     color: #FFD700;
     font-size: 18px;
@@ -247,13 +247,14 @@ body {
     position: sticky;
     top: 0;
     background: rgba(15, 12, 8, 0.98);
-    z-index: 1;
+    z-index: 3;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 #inventoryPanel .inv-section {
-    max-width: 1200px;
+    max-width: 1180px;
     margin: 0 auto;
-    width: 100%;
+    width: min(100%, 1180px);
 }
 
 .close-btn {
@@ -273,28 +274,32 @@ body {
 }
 
 .inv-section {
-    padding: 14px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin: 8px auto 0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .inv-section-title {
     color: #FFD700;
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 0.4px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     text-transform: uppercase;
+    opacity: 0.95;
 }
 
 .date-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
 }
 
 #gameDateDisplay {
     color: #c8b89a;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 #gameDateDisplay strong {
@@ -345,14 +350,18 @@ body {
 /* Building rows */
 .build-row {
     margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 215, 0, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .build-title {
     display: block;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: bold;
     color: #f0e6d0;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .build-title small {
@@ -362,8 +371,9 @@ body {
 
 .build-btns {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .build-head {
@@ -390,10 +400,10 @@ body {
 }
 
 .inv-btn {
-    padding: 8px 14px;
+    padding: 9px 14px;
     background: rgba(255, 215, 0, 0.12);
     border: 1px solid rgba(255, 215, 0, 0.25);
-    border-radius: 8px;
+    border-radius: 10px;
     color: #f0e6d0;
     font-size: 13px;
     cursor: pointer;
@@ -507,8 +517,8 @@ body {
 }
 
 .action-emoji-btn {
-    width: 54px;
-    height: 54px;
+    width: 50px;
+    height: 50px;
     font-size: 24px;
     padding: 0;
     display: inline-flex;
@@ -518,8 +528,8 @@ body {
 
 .market-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
 }
 
 .market-item {
@@ -566,22 +576,23 @@ body {
 }
 
 .owned-row {
-    padding: 10px;
+    padding: 12px;
     border: 1px solid rgba(255, 215, 0, 0.15);
-    border-radius: 10px;
+    border-radius: 12px;
     background: rgba(255, 255, 255, 0.03);
 }
 
 .owned-title {
     color: #f0e6d0;
     font-weight: bold;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .owned-sub {
     color: #c8b89a;
-    font-size: 12px;
+    font-size: 13px;
     margin-bottom: 8px;
+    line-height: 1.4;
 }
 
 .owned-sub.no-margin {
@@ -590,7 +601,7 @@ body {
 
 .owned-controls {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -848,6 +859,53 @@ body {
 
     #inventoryPanel {
         width: 100%;
+    }
+
+    #inventoryHeader {
+        padding: 14px 14px;
+    }
+
+    .inv-section {
+        margin-top: 6px;
+        padding: 12px 12px;
+        border-radius: 10px;
+    }
+
+    .build-row {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .build-title {
+        font-size: 15px;
+    }
+
+    .build-btns {
+        gap: 8px;
+    }
+
+    .inv-btn {
+        padding: 8px 10px;
+        font-size: 12px;
+        min-height: 40px;
+    }
+
+    .action-emoji-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .market-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .owned-row {
+        padding: 10px;
+    }
+
+    .owned-sub {
+        font-size: 12px;
     }
 
     #spawnButton {
