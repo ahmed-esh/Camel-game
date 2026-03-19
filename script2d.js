@@ -1341,11 +1341,7 @@ function checkConversionCompletions() {
    UNLOCK SYSTEM
    ============================================================ */
 function checkUnlocks() {
-    if (activePrinceEvent) {
-        return;
-    }
-
-    if (!gs.princeFirstIntroDone && gs.manualDropCount >= 5) {
+    if (!gs.princeFirstIntroDone && gs.manualDropCount >= 5 && !activePrinceEvent) {
         queuePrinceEvent(
             'firstIntro',
             'Greetings! I am your guide. I love camel care, and I will help you build this kingdom.',
@@ -1354,7 +1350,7 @@ function checkUnlocks() {
         return;
     }
 
-    if (!gs.princeManagementIntroDone && gs.camelCount >= 80) {
+    if (!gs.princeManagementIntroDone && gs.camelCount >= 80 && !activePrinceEvent) {
         queuePrinceEvent(
             'managementIntro',
             'You are ready. I now open the Management page so you can run your growing kingdom.',
@@ -1363,7 +1359,7 @@ function checkUnlocks() {
         return;
     }
 
-    if (!gs.princeSmasherIntroDone && gs.camelCount >= 7000) {
+    if (!gs.princeSmasherIntroDone && gs.camelCount >= 7000 && !activePrinceEvent) {
         queuePrinceEvent(
             'smasherIntro',
             'Your kingdom needs automation. Button Smashers can now press the drop button for you.',
@@ -1372,7 +1368,7 @@ function checkUnlocks() {
         return;
     }
 
-    if (!gs.princeMarketIntroDone && gs.camelCount >= 10000) {
+    if (!gs.princeMarketIntroDone && gs.camelCount >= 10000 && !activePrinceEvent) {
         queuePrinceEvent(
             'marketIntro',
             'Excellent growth! The Market is now open for your kingdom.',
@@ -1473,6 +1469,11 @@ function addLog(text) {
 }
 
 function queuePrinceEvent(key, message, logMessage) {
+    if (!dom.princeEvent || !dom.princeBubble) {
+        applyPrinceUnlock(key);
+        addLog(logMessage || message);
+        return;
+    }
     activePrinceEvent = { key, message, logMessage: logMessage || message };
     princeMessageShown = false;
     dom.princeBubble.classList.add('hidden');
