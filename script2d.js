@@ -418,6 +418,10 @@ function cacheDOMRefs() {
     dom.disableAudioBtn = document.getElementById('disableAudioBtn');
     dom.princeEvent = document.getElementById('princeEvent');
     dom.princeBubble = document.getElementById('princeBubble');
+    dom.debugCamelOverlay = document.getElementById('debugCamelOverlay');
+    dom.debugCamelForm = document.getElementById('debugCamelForm');
+    dom.debugCamelAmount = document.getElementById('debugCamelAmount');
+    dom.debugCamelClose = document.getElementById('debugCamelClose');
 }
 
 function setupEventListeners() {
@@ -442,10 +446,26 @@ function setupEventListeners() {
     dom.buildingActions.addEventListener('click', handleBuildingClick);
     dom.ownershipContent.addEventListener('click', handleOwnedPanelClick);
 
+    dom.debugCamelForm.addEventListener('submit', e => {
+        e.preventDefault();
+        handleDebugCamelApply();
+    });
+    dom.debugCamelClose.addEventListener('click', closeDebugCamelOverlay);
+
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('keydown', e => {
+        if (isDebugCamelOverlayVisible() && e.key === 'Escape') {
+            e.preventDefault();
+            closeDebugCamelOverlay();
+            return;
+        }
         keysHeld[e.key.toLowerCase()] = true;
         updateCheatMultiplier();
+        const isBackslashPhysicalKey = e.code === 'Backslash' || e.code === 'IntlBackslash';
+        if (!e.repeat && e.shiftKey && isBackslashPhysicalKey) {
+            e.preventDefault();
+            toggleDebugCamelOverlay();
+        }
     });
     window.addEventListener('keyup', e => {
         keysHeld[e.key.toLowerCase()] = false;
@@ -673,6 +693,56 @@ function handleSpawnClick() {
     if (!camelImage.complete) return;
     spawnCamel(true);
     saveToLocalStorage();
+}
+
+function isDebugCamelOverlayVisible() {
+    return dom.debugCamelOverlay && !dom.debugCamelOverlay.classList.contains('hidden');
+}
+
+function openDebugCamelOverlay() {
+    dom.debugCamelOverlay.classList.remove('hidden');
+    dom.debugCamelAmount.focus();
+    dom.debugCamelAmount.select();
+}
+
+function closeDebugCamelOverlay() {
+    dom.debugCamelOverlay.classList.add('hidden');
+}
+
+function toggleDebugCamelOverlay() {
+    if (isDebugCamelOverlayVisible()) {
+        closeDebugCamelOverlay();
+    } else {
+        openDebugCamelOverlay();
+    }
+}
+
+/**
+ * Adds camels to gs.camelCount and spawns a capped burst of falling visuals for performance.
+ * @param {string|number} rawAmount — value from the debug input
+ */
+function grantDebugCamels(rawAmount) {
+    let amount = Math.floor(Number(rawAmount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return;
+    }
+    const safetyCap = 1000000000;
+    if (amount > safetyCap) {
+        amount = safetyCap;
+    }
+    gs.camelCount += amount;
+    const visualBurst = Math.min(amount, 120);
+    for (let i = 0; i < visualBurst; i++) {
+        spawnVisualCamel();
+    }
+    checkUnlocks();
+    saveToLocalStorage();
+}
+
+function handleDebugCamelApply() {
+    grantDebugCamels(dom.debugCamelAmount.value);
+    dom.debugCamelAmount.focus();
+    dom.debugCamelAmount.select();
 }
 
 function handleAudioChoice(keepAudio) {

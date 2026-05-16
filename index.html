@@ -108,6 +108,21 @@
         </div>
     </div>
 
+    <!-- Debug: Shift + \ (Backslash key) — add camels -->
+    <div id="debugCamelOverlay" class="hidden">
+        <div id="debugCamelModal">
+            <p id="debugCamelTitle">Debug — add camels</p>
+            <form id="debugCamelForm">
+                <label id="debugCamelLabel" for="debugCamelAmount">How many camels?</label>
+                <input type="number" id="debugCamelAmount" min="1" step="1" value="100">
+                <div class="debug-camel-actions">
+                    <button type="submit" id="debugCamelApply" class="menu-btn">Add</button>
+                    <button type="button" id="debugCamelClose" class="menu-btn">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Audio -->
     <audio id="backgroundMusic" loop>
         <source src="assets/soundsssss.wav" type="audio/wav">

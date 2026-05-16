@@ -483,6 +483,55 @@ body {
     gap: 10px;
 }
 
+#debugCamelOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 62;
+    background: rgba(0, 0, 0, 0.68);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#debugCamelModal {
+    width: min(480px, 90vw);
+    background: rgba(20, 15, 10, 0.98);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 14px;
+    padding: 22px;
+}
+
+#debugCamelTitle {
+    color: #f0e6d0;
+    font-size: 18px;
+    margin: 0 0 14px 0;
+}
+
+#debugCamelLabel {
+    display: block;
+    color: #c9bba8;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+#debugCamelAmount {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    background: rgba(10, 8, 6, 0.95);
+    color: #f0e6d0;
+    font-size: 16px;
+}
+
+.debug-camel-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 #princeEvent {
     position: fixed;
     left: 60px;
