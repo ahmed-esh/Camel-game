@@ -345,6 +345,8 @@ let pendingSmasherHitBursts = 0;
 let activePrinceEvent = null;
 let princeMessageShown = false;
 let lastSmasherPressVisualMs = 0;
+let lastInventorySnapshot = '';
+let lastOwnershipSnapshot = '';
 
 /* ============================================================
    INITIALIZATION
@@ -503,12 +505,16 @@ function handleBuildingClick(e) {
     else if (action === 'university') buildUniversity();
     else if (action === 'convert') startConversion();
     saveToLocalStorage();
+    if (inventoryOpen) {
+        syncInventoryUI(true);
+    }
 }
 
 function openOwnershipPanel(type) {
     ownershipView = type;
     dom.ownershipPanel.classList.remove('hidden');
-    renderOwnershipPanel();
+    lastOwnershipSnapshot = '';
+    syncOwnershipUI(true);
 }
 
 function closeOwnershipPanel() {
@@ -586,8 +592,11 @@ function handleOwnedPanelClick(e) {
     else if (action === 'farmPayToggle') gs.farm.payMode = gs.farm.payMode === 'silver' ? 'gold' : 'silver';
     else if (action === 'mineAssignPlus') adjustMineAssignment(btn.dataset.mineKind, 1);
     else if (action === 'mineAssignMinus') adjustMineAssignment(btn.dataset.mineKind, -1);
-    renderOwnershipPanel();
     saveToLocalStorage();
+    syncOwnershipUI(true);
+    if (inventoryOpen) {
+        syncInventoryUI(true);
+    }
 }
 
 /* ============================================================
@@ -1598,6 +1607,134 @@ function updateUI() {
     }
 }
 
+function invalidateInventoryUI() {
+    lastInventorySnapshot = '';
+    lastOwnershipSnapshot = '';
+}
+
+function getInventorySnapshot() {
+    const gameDay = Math.floor(gs.currentGameDay);
+    const caravanDays = gs.caravans.map(c => daysRemaining(c.returnDay)).join(',');
+    const scoutDays = gs.scouts.map(s => daysRemaining(s.returnDay)).join(',');
+    const banquetDays = gs.banquets.map(b => daysRemaining(b.endDay)).join(',');
+    const raceDays = gs.races.map(r => daysRemaining(r.endDay)).join(',');
+    const conversionDays = gs.conversions.map(c => daysRemaining(c.endDay)).join(',');
+    return [
+        gameDay,
+        gs.camelCount,
+        Math.floor(gs.silver),
+        Math.floor(gs.gold),
+        Math.floor(gs.grass),
+        gs.workers,
+        gs.hotdogs,
+        gs.warriorCamels,
+        gs.silverEverCollected,
+        gs.goldEverCollected,
+        gs.grassEverCollected,
+        gs.workersEverCollected,
+        gs.hotdogsEverCollected,
+        gs.warriorCamelsEverCollected,
+        gs.caravanUnlocked,
+        gs.huntUnlocked,
+        gs.smasherUnlocked,
+        gs.buttonSmashers,
+        gs.scoutUnlocked,
+        gs.banquetEverAffordable,
+        gs.raceEverAffordable,
+        gs.farmEverAffordable,
+        gs.marketUnlocked,
+        gs.universityEverAffordable,
+        gs.universityBuilt,
+        gs.mineSilverUnlocked,
+        gs.mineGoldUnlocked,
+        gs.mineAssignmentUnlocked,
+        gs.mineUpgradeUnlocked,
+        gs.goldFarmMineAccessUnlocked,
+        gs.farm.owned,
+        gs.farm.enabled,
+        gs.farm.payMode,
+        gs.farm.assignedWorkers,
+        gs.silverMine.owned,
+        gs.silverMine.upgradeLevel,
+        gs.silverMine.assignedCamels,
+        gs.silverMine.digEndAtMs > Date.now() ? 1 : 0,
+        gs.goldMine.owned,
+        gs.goldMine.upgradeLevel,
+        gs.goldMine.assignedCamels,
+        caravanDays,
+        scoutDays,
+        banquetDays,
+        raceDays,
+        conversionDays
+    ].join('|');
+}
+
+function getOwnershipSnapshot() {
+    if (!ownershipView) {
+        return '';
+    }
+    if (ownershipView === 'farms') {
+        return [
+            'farms',
+            gs.farm.owned,
+            gs.farm.enabled,
+            gs.farm.payMode,
+            gs.workers
+        ].join('|');
+    }
+    return [
+        'mines',
+        gs.silverMine.owned,
+        gs.silverMine.assignedCamels,
+        getSilverMineCapacity(),
+        gs.goldMine.owned,
+        gs.goldMine.assignedCamels,
+        getGoldMineCapacity()
+    ].join('|');
+}
+
+function updateInventoryDigProgressOnly() {
+    if (!gs.silverMine.owned || !dom.buildingActions) {
+        return;
+    }
+    const btn = dom.buildingActions.querySelector('[data-action="silverMineDig"]');
+    if (!btn) {
+        return;
+    }
+    const digActive = gs.silverMine.digEndAtMs > Date.now();
+    if (!digActive) {
+        return;
+    }
+    const digRemaining = Math.max(0, gs.silverMine.digEndAtMs - Date.now());
+    const digPct = (1 - digRemaining / 15000) * 100;
+    btn.disabled = true;
+    btn.textContent = 'DIGGING...';
+    btn.style.background =
+        'linear-gradient(90deg, rgba(255,215,0,0.28) ' + digPct + '%, rgba(255,215,0,0.06) ' + digPct + '%)';
+}
+
+function syncOwnershipUI(force) {
+    if (!ownershipView) {
+        return;
+    }
+    const snap = getOwnershipSnapshot();
+    if (!force && snap === lastOwnershipSnapshot) {
+        return;
+    }
+    lastOwnershipSnapshot = snap;
+    renderOwnershipPanel();
+}
+
+function syncInventoryUI(force) {
+    const snap = getInventorySnapshot();
+    if (!force && snap === lastInventorySnapshot) {
+        updateInventoryDigProgressOnly();
+        return;
+    }
+    lastInventorySnapshot = snap;
+    updateInventoryContent();
+}
+
 function updateSlowUI(timestamp) {
     if (timestamp - lastSlowUITime < SLOW_UI_INTERVAL) return;
     lastSlowUITime = timestamp;
@@ -1608,10 +1745,8 @@ function updateSlowUI(timestamp) {
     }
 
     if (inventoryOpen) {
-        updateInventoryContent();
-        if (ownershipView) {
-            renderOwnershipPanel();
-        }
+        syncInventoryUI(false);
+        syncOwnershipUI(false);
     }
 }
 
@@ -1681,9 +1816,11 @@ function toggleInventory() {
     inventoryOpen = !inventoryOpen;
     dom.inventoryPanel.classList.toggle('open', inventoryOpen);
     if (inventoryOpen) {
-        updateInventoryContent();
+        invalidateInventoryUI();
+        syncInventoryUI(true);
     } else {
         closeOwnershipPanel();
+        invalidateInventoryUI();
     }
 }
 
@@ -2135,9 +2272,11 @@ function backgroundLogicTick() {
    RENDER LOOP (rAF — only when tab is visible)
    ============================================================ */
 function renderLoop(timestamp) {
-    updatePhysics();
-    render();
-    updateSmasherVisuals(timestamp);
+    if (!inventoryOpen) {
+        updatePhysics();
+        render();
+        updateSmasherVisuals(timestamp);
+    }
     updateUI();
     updateSlowUI(timestamp);
 
